@@ -13,9 +13,20 @@ Remove exposed screws from overlapping panels. Three matching screws clear from 
 
 ## Content
 
-36 deterministic studies, generated with seeds `8900` through `8935`. Generation first chooses a physically valid removal order, then assigns colours while retaining a safe route. Both Python and GDScript verify the recorded routes. The runtime solver independently solves the boards. More colours and panels add complexity; adjacent levels are not promised to be strictly harder.
+36 deterministic studies, each recording its seed, winning route, and losing route. Version 2 replaces the original campaign after play feedback showed that the first four studies could not lose and many later ones required little planning.
 
-The first four studies use three colours, so unmatched counts cannot exceed six. This teaches the rules without a failure trap. Later studies use four or five colours and allow real tray overflow.
+Generation retains a safe solution, then rejects layouts that are too easy for random play or for a greedy policy that completes available triples and pairs without looking ahead. Separate fixed seeds screen candidates and audit the final campaign. Both Python and GDScript verify every winning and losing route; the runtime solver independently solves every board. See [difficulty results](BALANCE.md).
+
+- Studies 1–3, Learn: four colours, real tray pressure from the first board.
+- Studies 4–12, Plan: five colours and layered choices.
+- Studies 13–24, Think ahead: stronger dependencies and five or six colours.
+- Studies 25–36, Master: six colours; immediate matching is rarely enough.
+
+The seven-slot rule is unchanged. These are broad difficulty bands, not a claim that adjacent studies are strictly ordered by human difficulty. Simulation is a regression check, not proof that a puzzle is enjoyable.
+
+Inspect shows remaining colours for every numbered panel, including covered screws. It does not remove pieces or reveal a solution and does not count as a hint. Players can plan with visible information rather than guess. A solve without hints or undo earns a filled completion mark; assisted completion earns an outline. There are no limits on assistance.
+
+Campaign version 2 starts old saves at study 1 with a fresh completion record. Previous completion is retained in `legacy_completion`; sound and motion preferences are preserved. New-version progress persists normally.
 
 ## Presentation
 
@@ -28,7 +39,8 @@ All code, vector drawing, and synthesized sound are created for this repository.
 - `scripts/puzzle.gd`: pure rules and bounded depth-first solver, using a 64-bit removal mask.
 - `scripts/main.gd`: drawing, input, animation, undo, and local persistence.
 - `data/levels.json`: generated campaign and witness routes.
-- `tools/generate_levels.py`: deterministic generation and independent verification.
+- `tools/generate_levels.py`: deterministic generation and candidate screening.
+- `tools/audit_levels.py`: independent solver, random/greedy simulations, and difficulty gates.
 - `tests/run_tests.gd`: rule, solver, and scene-controller tests.
 - `tests/browser/game.spec.js`: real exported-game desktop and touch checks.
 - `tools/prepare_web.py`: splits the engine binary into static-host-friendly chunks, verifying byte equality.

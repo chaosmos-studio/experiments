@@ -2,10 +2,11 @@
 
 A quiet sorting puzzle made in Godot. Remove exposed screws, collect matching triples, and keep space in the tray.
 
-[Play the private preview](https://rivet-workshop.hong-ge-team-7161.chatgpt.site)
+[Play Rivet](https://shravangoswami.com/game-experiment/)
 
 - 36 verified solvable levels
-- Undo, hints, and saved completion
+- Inspect hidden colours, undo, hints, and saved completion
+- Four difficulty chapters and unaided solve marks
 - Mouse, touch, and keyboard controls
 - Optional sound and reduced motion
 
@@ -22,13 +23,14 @@ godot --headless --path . --script res://tests/run_tests.gd
 
 Tap a screw to collect it. Match three colours or symbols to clear them. Seven unmatched screws fill the tray.
 
-Keyboard: arrows select, Enter collects, U undoes, H hints, R restarts, M toggles sound.
+Keyboard: arrows select, Enter collects, U undoes, H hints, R restarts, M toggles sound, I inspects the layers.
 
 ## Notes
 
 - [Research](docs/RESEARCH.md)
 - [Game design](docs/DESIGN.md)
+- [Difficulty checks](docs/BALANCE.md)
 - [Web publishing](docs/DEPLOYMENT.md)
 - [Build workflow](https://github.com/shravanngoswamii/game-experiment/actions/workflows/web.yml)
 
-CI tests and exports each push to `main`, then deploys to GitHub Pages when Pages is enabled.
+CI tests and exports each push to `main`, then publishes to GitHub Pages.

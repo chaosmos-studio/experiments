@@ -46,6 +46,15 @@ func run() -> void:
 			mask = rules.collect(index, mask)
 			check(rules.occupancy(mask) < Rules.CAPACITY, "Solver route never overflows")
 		check(mask == rules.all_mask, "Solver route reaches completion")
+		# Each shipped study must also have a legal route that actually loses.
+		mask = 0
+		for step in level.failure_route:
+			var index := int(step)
+			check(rules.occupancy(mask) < Rules.CAPACITY, "Loss witness stops at first overflow")
+			check(rules.exposed(index, mask), "Loss witness uses legal exposed screws")
+			mask = rules.collect(index, mask)
+		check(rules.occupancy(mask) == Rules.CAPACITY, "Every study has a genuine loss condition")
+		check(mask != rules.all_mask, "Losing does not clear the board")
 	# Adversarial states test the loss condition and blocked-move rejection.
 	rules.configure(levels[20])
 	var rng := RandomNumberGenerator.new()
@@ -71,29 +80,51 @@ func run() -> void:
 	check(losses > 0, "Campaign contains meaningful tray pressure")
 	check(covered_rejections > 0, "Layer occlusion was exercised")
 	# Exercise the real scene controller, not only the pure rules.
+	var legacy_save := FileAccess.open(save_path, FileAccess.WRITE)
+	legacy_save.store_string(JSON.stringify({"level": 8, "completed": {"2": true}, "sound": false}))
+	legacy_save.close()
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await process_frame
 	game.sound_on = false
+	check(game.level_index == 0 and game.completed.is_empty(), "Old campaign starts at new first puzzle")
+	check(game.legacy_completion.has("2"), "Old completion record is preserved")
 	game._load_level(0)
-	game._take(0)
+	game._take(int(levels[0].solution[0]))
 	check(game.tray.size() == 1, "UI controller adds a screw to the tray")
 	game._undo()
 	check(game.removed == 0 and game.tray.is_empty(), "UI undo restores board and tray")
-	for index in [0, 3, 6]:
+	for index in levels[0].solution:
 		game.animating = 0
-		game._take(index)
-	check(game.tray.is_empty() and game.matched == 1, "UI clears a matching triple")
+		game._take(int(index))
+		if game.matched == 1:
+			break
+	check(game.matched == 1, "UI clears a matching triple")
+	var after_clear: int = game.tray.size()
 	game._undo()
-	check(game.tray.size() == 2 and game.matched == 0, "Undo reverses a triple clear")
+	check(game.tray.size() == after_clear + 2 and game.matched == 0, "Undo reverses a triple clear")
 	game._hint()
 	check(game.hint_index >= 0, "Hint points to a safe screw")
+	check(game.undos_used > 0 and game.hints_used == 1, "Assistance is counted honestly")
+	game._action("inspect")
+	check(game.screen == "inspect", "Inspection is available without consuming a hint")
+	game._action("close")
+	check(game.hints_used == 1, "Inspection does not use a hint")
+	game._load_level(0)
+	for index in levels[0].failure_route:
+		game.animating = 0
+		game._take(int(index))
+	await create_timer(0.5).timeout
+	check(game.screen == "lost" and game.tray.size() == 7, "First study can lose in the real scene")
+	game._undo()
+	check(game.screen == "play" and game.tray.size() == 6, "Undo recovers from a loss")
 	game._load_level(0)
 	for index in levels[0].solution:
 		game.animating = 0
 		game._take(int(index))
 	await create_timer(0.5).timeout
-	check(game.screen == "won", "Complete tutorial shows a win")
+	check(game.screen == "won", "Planned first-study route wins")
+	check(game.unaided.has("0"), "A clean solve earns an unaided mark")
 	game._action("next")
 	check(game.level_index == 1 and game.removed == 0, "Next study starts cleanly")
 	game.queue_free()

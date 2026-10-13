@@ -1,11 +1,11 @@
 # Web publishing
 
-[Play the private preview](https://rivet-workshop.hong-ge-team-7161.chatgpt.site). This initial preview is hosted with Sites. Updates from `main` publish through the GitHub Pages workflow below once Pages is enabled; the Sites preview does not automatically track new commits.
+[Play Rivet](https://shravangoswami.com/game-experiment/). GitHub Pages is enabled. Each successful push to `main` updates this address. The earlier private Sites preview is an archived first version and does not track new commits.
 
 Every push to `main` runs `.github/workflows/web.yml`:
 
 1. Download pinned Godot 4.5.2 and verify both archives with SHA-256.
-2. Import the project, regenerate levels, and run rule and scene tests.
+2. Import the project, regenerate levels, audit difficulty, and run rule and scene tests.
 3. Export the single-threaded WebGL 2 build.
 4. Run Chromium checks at desktop and phone sizes, including touch input.
 5. Upload the web build and test screenshots as Actions artifacts.
@@ -17,7 +17,7 @@ In the repository, open **Settings > Pages > Build and deployment > Source**, an
 
 The repository is private. GitHub Pages on private repositories requires an eligible GitHub plan. The workflow does not change repository visibility. If the plan does not include private-repository Pages, the downloadable artifact still builds; use another static host for publishing.
 
-Expected Pages address after a successful deployment: `https://shravanngoswamii.github.io/game-experiment/`. This is an expected address, not evidence of a live deployment. Use the URL shown in the successful deployment job.
+The GitHub Pages address redirects to the account’s custom domain, `https://shravangoswami.com/game-experiment/`.
 
 ## Local preview
 

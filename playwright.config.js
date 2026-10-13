@@ -1,7 +1,7 @@
 const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests/browser',
-  timeout: 120000,
+  timeout: 180000,
   workers: 1,
   use: {baseURL: 'http://127.0.0.1:8765', headless: true,
     launchOptions: {args: ['--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']}},

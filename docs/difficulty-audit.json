@@ -1,0 +1,290 @@
+[
+  {
+    "study": 1,
+    "random_win_rate": 0.347,
+    "greedy_win_rate": 0.902,
+    "solver_nodes": 22,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 2,
+    "random_win_rate": 0.362,
+    "greedy_win_rate": 0.909,
+    "solver_nodes": 15,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 3,
+    "random_win_rate": 0.291,
+    "greedy_win_rate": 0.808,
+    "solver_nodes": 22,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 4,
+    "random_win_rate": 0.069,
+    "greedy_win_rate": 0.738,
+    "solver_nodes": 18,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 5,
+    "random_win_rate": 0.092,
+    "greedy_win_rate": 0.617,
+    "solver_nodes": 19,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 6,
+    "random_win_rate": 0.069,
+    "greedy_win_rate": 0.567,
+    "solver_nodes": 25,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 7,
+    "random_win_rate": 0.14,
+    "greedy_win_rate": 0.776,
+    "solver_nodes": 24,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 8,
+    "random_win_rate": 0.039,
+    "greedy_win_rate": 0.688,
+    "solver_nodes": 21,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 9,
+    "random_win_rate": 0.044,
+    "greedy_win_rate": 0.524,
+    "solver_nodes": 21,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 10,
+    "random_win_rate": 0.063,
+    "greedy_win_rate": 0.79,
+    "solver_nodes": 24,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 11,
+    "random_win_rate": 0.155,
+    "greedy_win_rate": 0.556,
+    "solver_nodes": 26,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 12,
+    "random_win_rate": 0.084,
+    "greedy_win_rate": 0.499,
+    "solver_nodes": 39,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 13,
+    "random_win_rate": 0.005,
+    "greedy_win_rate": 0.182,
+    "solver_nodes": 29,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 14,
+    "random_win_rate": 0.011,
+    "greedy_win_rate": 0.156,
+    "solver_nodes": 108,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 15,
+    "random_win_rate": 0.042,
+    "greedy_win_rate": 0.186,
+    "solver_nodes": 29,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 16,
+    "random_win_rate": 0.006,
+    "greedy_win_rate": 0.377,
+    "solver_nodes": 132,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 17,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.105,
+    "solver_nodes": 66,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 18,
+    "random_win_rate": 0.04,
+    "greedy_win_rate": 0.403,
+    "solver_nodes": 30,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 19,
+    "random_win_rate": 0.005,
+    "greedy_win_rate": 0.442,
+    "solver_nodes": 40,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 20,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.183,
+    "solver_nodes": 39,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 21,
+    "random_win_rate": 0.006,
+    "greedy_win_rate": 0.486,
+    "solver_nodes": 33,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 22,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.443,
+    "solver_nodes": 53,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 23,
+    "random_win_rate": 0.004,
+    "greedy_win_rate": 0.41,
+    "solver_nodes": 36,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 24,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.262,
+    "solver_nodes": 57,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 25,
+    "random_win_rate": 0.002,
+    "greedy_win_rate": 0.167,
+    "solver_nodes": 36,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 26,
+    "random_win_rate": 0.002,
+    "greedy_win_rate": 0.046,
+    "solver_nodes": 40,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 27,
+    "random_win_rate": 0.001,
+    "greedy_win_rate": 0.256,
+    "solver_nodes": 37,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 28,
+    "random_win_rate": 0.002,
+    "greedy_win_rate": 0.227,
+    "solver_nodes": 46,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 29,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.112,
+    "solver_nodes": 115,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 30,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.152,
+    "solver_nodes": 113,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 31,
+    "random_win_rate": 0.001,
+    "greedy_win_rate": 0.208,
+    "solver_nodes": 37,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 32,
+    "random_win_rate": 0.001,
+    "greedy_win_rate": 0.142,
+    "solver_nodes": 57,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 33,
+    "random_win_rate": 0.003,
+    "greedy_win_rate": 0.141,
+    "solver_nodes": 67,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 34,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.215,
+    "solver_nodes": 36,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 35,
+    "random_win_rate": 0.0,
+    "greedy_win_rate": 0.178,
+    "solver_nodes": 57,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  },
+  {
+    "study": 36,
+    "random_win_rate": 0.002,
+    "greedy_win_rate": 0.197,
+    "solver_nodes": 60,
+    "random_attempts": 1000,
+    "greedy_attempts": 1000
+  }
+]
