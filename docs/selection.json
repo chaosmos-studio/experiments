@@ -1,0 +1,17 @@
+{
+  "seed": 1067741102,
+  "method": "Python random.Random(seed).sample(pool, 3)",
+  "pool": [
+    "Match-3",
+    "Merge-2",
+    "Block placement",
+    "Sorting",
+    "Screw puzzles",
+    "Daily word association"
+  ],
+  "selected": [
+    "Screw puzzles",
+    "Match-3",
+    "Sorting"
+  ]
+}
