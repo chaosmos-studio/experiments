@@ -119,7 +119,7 @@ func _load_save() -> void:
 	if saved.get("legacy_completion", {}) is Dictionary:
 		legacy_completion = saved.get("legacy_completion", {})
 	if int(saved.get("campaign_version", 1)) != CAMPAIGN_VERSION:
-		legacy_completion[str(saved.get("campaign_version", 1))] = completed.duplicate(true)
+		legacy_completion[str(int(saved.get("campaign_version", 1)))] = completed.duplicate(true)
 		completed.clear()
 		unaided.clear()
 		level_index = 0

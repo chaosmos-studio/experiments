@@ -149,7 +149,10 @@ func _search(mask: int, line: Array[int]) -> Array[int]:
 	for i in screws.size():
 		if exposed(i, mask):
 			choices.append(i)
-	choices.sort_custom(func(a: int, b: int): return int(int(screws[a].color) == tail) > int(int(screws[b].color) == tail))
+	choices.sort_custom(func(a: int, b: int):
+		var a_matches := int(screws[a].color) == tail
+		var b_matches := int(screws[b].color) == tail
+		return a < b if a_matches == b_matches else a_matches)
 	for index in choices:
 		var next := collect(index, mask, line)
 		var route := _search(int(next.mask), next.tray)

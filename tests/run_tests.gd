@@ -100,7 +100,7 @@ func run() -> void:
 	root.add_child(game)
 	await process_frame
 	check(game.level_index == 0 and game.completed.is_empty() and game.unaided.is_empty(), "Changed campaign starts with fresh completion")
-	check(game.legacy_completion["2"].has("2") and game.legacy_completion["1"].has("0"), "All older completion records are preserved")
+	check(game.legacy_completion.get("2", {}).has("2") and game.legacy_completion.get("1", {}).has("0"), "All older completion records are preserved")
 	check(not game.sound_on and game.reduced_motion, "Migration preserves preferences")
 	game._load_level(0)
 	var demo: Dictionary = levels[0].return_demo
