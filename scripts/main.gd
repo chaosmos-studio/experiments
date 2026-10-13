@@ -155,7 +155,8 @@ func _play(stream: AudioStream) -> void:
 		audio.play()
 
 func _take(index: int) -> void:
-	if screen != "play" or animating > 0 or not rules.exposed(index, removed):
+	# Rules update immediately. Visual flights must never discard a legal click.
+	if screen != "play" or not rules.exposed(index, removed):
 		return
 	var before := removed
 	var next: int = rules.collect(index, removed)
@@ -227,7 +228,7 @@ func _undo() -> void:
 	screen = "play"
 
 func _hint() -> void:
-	if screen != "play" or animating > 0:
+	if screen != "play":
 		return
 	var route: Array[int] = rules.solve(removed, 60000)
 	if not route.is_empty() and route[0] >= 0:

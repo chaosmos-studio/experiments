@@ -20,7 +20,9 @@ test('real Godot: lose, recover, plan a win, and inspect hidden layers', async (
   }
   async function screw(index) {
     const s = campaign[0].screws[index];
+    const before = BigInt(await state.getAttribute('data-removed'));
     await tap(74+s.x,266+s.y);
+    await expect(state).toHaveAttribute('data-removed',String(before | (1n << BigInt(index))));
   }
   await page.screenshot({path:testInfo.outputPath('first-study.png')});
   await screw(campaign[0].solution[0]);
