@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: web-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   GODOT_VERSION: 4.5.2
@@ -44,7 +44,7 @@ jobs:
           git diff --exit-code -- data/levels.json
           python3 tools/audit_levels.py --check
           git diff --exit-code -- docs/difficulty-audit.json
-          godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
+          timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
           grep -q 'failures=0' /tmp/tests.log
       - name: Export web game
