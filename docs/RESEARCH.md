@@ -137,4 +137,3 @@ All links accessed 13 October 2026. Figures are paraphrased; no report graphics 
 12. [Raw Fury, Blue Prince release announcement](https://rawfury.com/blue-prince-is-arriving-on-april-10th/), 24 February 2025. Primary publisher source; qualitative context only.
 13. [Google Play, Screw Jam by Rollic](https://play.google.com/store/apps/details?hl=en_US&id=com.quok.screwJam). Primary store listing identifying the reference mechanic and correct publisher; not used as a three-year download total.
 14. [Google Play, Goods Puzzle: Sort Challenge](https://play.google.com/store/apps/details?id=com.fc.goods.sort.matching.puzzle.triplemaster). Primary store listing identifying the sorting/matching family.
-

@@ -1,5 +1,7 @@
 # Web publishing
 
+[Play the private preview](https://rivet-workshop.hong-ge-team-7161.chatgpt.site). This initial preview is hosted with Sites. Updates from `main` publish through the GitHub Pages workflow below once Pages is enabled; the Sites preview does not automatically track new commits.
+
 Every push to `main` runs `.github/workflows/web.yml`:
 
 1. Download pinned Godot 4.5.2 and verify both archives with SHA-256.
@@ -38,7 +40,7 @@ For browser checks, run `npm ci`, `npx playwright install chromium`, then `npm r
 
 The game uses GDScript and Godot's Compatibility renderer. Thread and extension support are disabled, so COOP/COEP headers and SharedArrayBuffer are unnecessary. HTTPS and WebGL 2/WebAssembly support are required for the deployed preview.
 
-`prepare_web.py` divides the 38MB engine into four files under 10MiB. The loader streams their bytes back into one WebAssembly response. This supports static hosts with per-file limits without changing the engine. The generated `build-info.json` records the complete engine hash. First load is still substantial; an optimized custom Godot template is a future performance improvement.
+`prepare_web.py` divides the 38MB engine into ten files of at most 4MiB. The loader streams their bytes back into one WebAssembly response. This supports static hosts with per-file limits without changing the engine. The generated `build-info.json` records the complete engine hash. First load is still substantial; an optimized custom Godot template is a future performance improvement.
 
 The browser stores completed studies and preferences locally. Browser storage restrictions can prevent persistence. No personal data is sent to a game server.
 

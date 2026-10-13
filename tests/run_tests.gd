@@ -105,4 +105,3 @@ func run() -> void:
 		DirAccess.remove_absolute(save_path)
 	print("TEST_RESULT assertions=%d failures=%d solver_max_nodes=%d observed_losses=%d" % [assertions, failures, maximum_visits, losses])
 	quit(1 if failures else 0)
-

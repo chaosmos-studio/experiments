@@ -49,6 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/web
+          touch build/.gdignore
           godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/export.log
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/export.log
           python3 tools/prepare_web.py
@@ -92,4 +93,3 @@ jobs:
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
-

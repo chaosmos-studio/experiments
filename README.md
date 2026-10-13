@@ -2,6 +2,8 @@
 
 A quiet sorting puzzle made in Godot. Remove exposed screws, collect matching triples, and keep space in the tray.
 
+[Play the private preview](https://rivet-workshop.hong-ge-team-7161.chatgpt.site)
+
 - 36 verified solvable levels
 - Undo, hints, and saved completion
 - Mouse, touch, and keyboard controls

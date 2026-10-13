@@ -36,7 +36,7 @@ test('loads real Godot, plays a level, undoes, and opens help', async ({page}, t
   expect(errors).toEqual([]);
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();
-  // Confirm the packaged engine was loaded from all four actual WASM chunks.
+  // Confirm the packaged engine was loaded from all ten actual WASM chunks.
   const resources=await page.evaluate(()=>performance.getEntriesByType('resource').map(r=>r.name));
-  expect(resources.filter(url=>/index\.wasm\.part\d+$/.test(url)).length).toBe(4);
+  expect(resources.filter(url=>/index\.wasm\.part\d+$/.test(url)).length).toBe(10);
 });

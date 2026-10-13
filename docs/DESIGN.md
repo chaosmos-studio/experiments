@@ -36,4 +36,3 @@ All code, vector drawing, and synthesized sound are created for this repository.
 ## Limits
 
 No physics simulation, accounts, multiplayer, monetization, or endless-mode claims. Panel disappearance is a short visual transition, not a physics event. The first build is a playable experiment; market success and retention remain untested.
-

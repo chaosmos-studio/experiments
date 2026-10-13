@@ -93,4 +93,3 @@ func _search(mask: int) -> Array[int]:
 			return []
 	dead[mask] = true
 	return []
-

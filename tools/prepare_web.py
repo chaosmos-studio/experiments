@@ -4,13 +4,17 @@ from pathlib import Path
 import hashlib
 
 root = Path(__file__).resolve().parents[1]/'build'/'web'
+(root.parent/'.gdignore').touch()
 wasm = root/'index.wasm'
 raw = wasm.read_bytes()
 assert raw[:4] == b'\0asm', 'Not a WebAssembly build'
 parts = []
-for i in range(0, len(raw), 10*1024*1024):
-    name = f'index.wasm.part{i//(10*1024*1024)}'
-    (root/name).write_bytes(raw[i:i+10*1024*1024])
+chunk_size = 4*1024*1024
+for old in root.glob('index.wasm.part*'):
+    old.unlink()
+for i in range(0, len(raw), chunk_size):
+    name = f'index.wasm.part{i//chunk_size}'
+    (root/name).write_bytes(raw[i:i+chunk_size])
     parts.append(name)
 script = '''// Reassemble the engine from static-host-friendly chunks.
 (() => {
@@ -41,4 +45,7 @@ manifest = {'wasm_sha256': hashlib.sha256(raw).hexdigest(), 'wasm_size': len(raw
 (root/'build-info.json').write_text(json.dumps(manifest, indent=2)+'\n')
 assert b''.join((root/p).read_bytes() for p in parts) == raw
 wasm.unlink()
+for imported in root.glob('*.import'):
+    imported.unlink()
+assert max(p.stat().st_size for p in root.iterdir() if p.is_file()) <= chunk_size
 print(f'Prepared web build: {len(parts)} verified WASM chunks, {len(raw)} bytes.')
