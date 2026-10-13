@@ -1,7 +1,7 @@
 const {test, expect} = require('@playwright/test');
 const campaign = require('../../data/levels.json');
 
-test('real Godot: lose, recover, plan a win, and inspect hidden layers', async ({page}, testInfo) => {
+test('real Godot: ordered matches, returns, full tray recovery, and a clean win', async ({page}, testInfo) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', msg => {if (/SCRIPT ERROR|Parse Error|ERROR:/.test(msg.text())) errors.push(msg.text());});
@@ -9,7 +9,7 @@ test('real Godot: lose, recover, plan a win, and inspect hidden layers', async (
   await page.waitForFunction(() => window.rivetReady === true, null, {timeout: 90000});
   await expect(page.locator('#loading')).toBeHidden();
   const state = page.locator('#game-state');
-  await expect(state).toHaveAttribute('data-campaign','2');
+  await expect(state).toHaveAttribute('data-campaign','3');
   const vp = page.viewportSize();
   const scale = Math.min(vp.width/720, vp.height/1000);
   const ox = (vp.width-720*scale)/2, oy = (vp.height-1000*scale)/2;
@@ -25,35 +25,54 @@ test('real Godot: lose, recover, plan a win, and inspect hidden layers', async (
     await expect(state).toHaveAttribute('data-removed',String(before | (1n << BigInt(index))));
   }
   await page.screenshot({path:testInfo.outputPath('first-study.png')});
-  await screw(campaign[0].solution[0]);
-  await expect(state).toHaveAttribute('data-tray','1');
+  const demo = campaign[0].return_demo;
+  for (const index of demo.takes) await screw(index);
+  await expect(state).toHaveAttribute('data-order', demo.takes.join(','));
+  await expect(state).toHaveAttribute('data-sets','0');
+  await page.screenshot({path:testInfo.outputPath('ordered-tray.png')});
+  const demoMask = BigInt(await state.getAttribute('data-removed'));
+  await tap(192,818); // A B A A: return B to close the gap and clear A A A.
+  await expect(state).toHaveAttribute('data-tray','0');
+  await expect(state).toHaveAttribute('data-sets','1');
+  await expect(state).toHaveAttribute('data-returns','1');
+  await expect(state).toHaveAttribute('data-removed',String(demoMask & ~(1n << BigInt(demo.return_id))));
+  await page.screenshot({path:testInfo.outputPath('returned-screw.png')});
   await tap(150,917);
-  await expect(state).toHaveAttribute('data-tray','0');
-  // A legal but poor order must genuinely lose, even in study 1.
-  for (const index of campaign[0].failure_route) await screw(index);
-  await expect(state).toHaveAttribute('data-screen','lost');
-  await expect(state).toHaveAttribute('data-tray','7');
-  await page.screenshot({path:testInfo.outputPath('lost-study.png')});
-  await tap(230,574);
-  await expect(state).toHaveAttribute('data-screen','play');
-  await expect(state).toHaveAttribute('data-tray','6');
+  await expect(state).toHaveAttribute('data-order',demo.takes.join(','));
+  await expect(state).toHaveAttribute('data-sets','0');
+  await expect(state).toHaveAttribute('data-removed',String(demoMask));
   await tap(560,917);
-  await expect(state).toHaveAttribute('data-tray','0');
-  // Inspection reveals information without solving the board or spending a hint.
+  for (const index of campaign[0].full_route) await screw(index);
+  await expect(state).toHaveAttribute('data-screen','full');
+  await expect(state).toHaveAttribute('data-tray','7');
+  await page.screenshot({path:testInfo.outputPath('full-tray.png')});
+  const fullMask = BigInt(await state.getAttribute('data-removed'));
+  const fullOrder = (await state.getAttribute('data-order')).split(',').map(Number);
+  // A full tray still allows inspection and returns.
   await tap(362,65);
   await expect(state).toHaveAttribute('data-screen','inspect');
-  await expect(state).toHaveAttribute('data-hints','0');
   await page.screenshot({path:testInfo.outputPath('inspect-study.png')});
   await tap(360,848);
-  let mask=0n;
-  for (const index of campaign[0].solution) {
-    await screw(index);
-    mask |= 1n << BigInt(index);
-    await expect(state).toHaveAttribute('data-removed',String(mask));
-  }
+  await expect(state).toHaveAttribute('data-screen','full');
+  // Board input is blocked while full.
+  const blocked = campaign[0].screws.findIndex((_,i)=>!(fullMask & (1n << BigInt(i))));
+  const s = campaign[0].screws[blocked];
+  await tap(74+s.x,266+s.y);
+  await expect(state).toHaveAttribute('data-removed',String(fullMask));
+  if(testInfo.project.name === 'mobile') await tap(108,818);
+  else await page.keyboard.press('1');
+  await expect(state).toHaveAttribute('data-screen','play');
+  await expect(state).toHaveAttribute('data-removed',String(fullMask & ~(1n << BigInt(fullOrder[0]))));
+  // Finish with a return and no hints or undo. Returns are ordinary play.
+  await tap(560,917);
+  for (const index of demo.takes) await screw(index);
+  await tap(192,818);
+  for (const index of demo.after) await screw(index);
   await expect(state).toHaveAttribute('data-screen','won');
+  await expect(state).toHaveAttribute('data-tray','0');
   await expect(state).toHaveAttribute('data-undos','0');
   await expect(state).toHaveAttribute('data-hints','0');
+  await expect(state).toHaveAttribute('data-returns','1');
   await page.screenshot({path:testInfo.outputPath('completed-study.png')});
   await tap(360,574);
   await expect(state).toHaveAttribute('data-level','2');

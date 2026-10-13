@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="rivet-campaign" content="2">
+<meta name="rivet-campaign" content="3">
 <meta name="theme-color" content="#f3f0e6">
 <meta name="description" content="Rivet: a quiet puzzle of layers, colour, and careful choices. Play 36 verified solvable studies.">
 <title>Rivet — a small sorting workshop</title>
@@ -14,7 +14,7 @@ $GODOT_HEAD_INCLUDE
 </head>
 <body>
 <div id="game-state" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)"></div>
-<canvas id="canvas" tabindex="0" aria-label="Rivet puzzle. Use arrows to choose a screw and Enter to collect. U: undo, H: hint, R: restart, M: sound.">Your browser needs canvas support.</canvas>
+<canvas id="canvas" tabindex="0" aria-label="Rivet puzzle. Use arrows to choose a screw and Enter to collect. U: undo, H: hint, R: restart, M: sound. Number keys 1–7 return tray screws.">Your browser needs canvas support.</canvas>
 <div id="loading" role="status" aria-live="polite"><div class="card"><div class="mark" aria-hidden="true">×</div><h1>RIVET</h1><p id="status">Opening the workshop…</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
 <noscript>Rivet needs JavaScript enabled to run the Godot game.</noscript>
 <script src="wasm-loader.js"></script>

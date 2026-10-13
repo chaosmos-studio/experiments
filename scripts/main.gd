@@ -8,7 +8,7 @@ const COLORS := [Color("d97b5c"), Color("559f92"), Color("d6ad50"), Color("8982b
 const PLATE_COLORS := [Color("e5d5bb"), Color("bacdc2"), Color("d7c8bc"), Color("c7cfd8"), Color("d9d1b3")]
 const BOARD := Vector2(74, 266)
 const SAVE_PATH := "user://rivet.json"
-const CAMPAIGN_VERSION := 2
+const CAMPAIGN_VERSION := 3
 
 var font: Font
 var bold: FontVariation
@@ -24,6 +24,9 @@ var legacy_completion: Dictionary = {}
 var campaign_updated := false
 var undos_used := 0
 var hints_used := 0
+var returns_used := 0
+var state_revision := 0
+var hint_return_id := -1
 var buttons: Array = []
 var screen := "play"
 var hover := Vector2(-100, -100)
@@ -61,7 +64,7 @@ func _ready() -> void:
 	_load_save()
 	_load_level(level_index)
 	if campaign_updated:
-		_toast("New puzzles. Plan your removal order.")
+		_toast("New rules: match three neighbours. Tap tray to return.")
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.rivetReady = true;")
 	print("RIVET_READY levels=", levels.size())
@@ -94,7 +97,9 @@ func _sync_web_state() -> void:
 		return
 	var state := JSON.stringify({"level": level_index + 1, "screen": screen,
 		"tray": tray.size(), "sets": matched, "removed": str(removed),
-		"campaign": CAMPAIGN_VERSION, "undos": undos_used, "hints": hints_used})
+		"campaign": CAMPAIGN_VERSION, "undos": undos_used, "hints": hints_used,
+		"returns": returns_used, "order": ",".join(PackedStringArray(tray.map(func(i): return str(i)))),
+		"hint_return": hint_return_id})
 	if state == last_web_state:
 		return
 	last_web_state = state
@@ -114,7 +119,7 @@ func _load_save() -> void:
 	if saved.get("legacy_completion", {}) is Dictionary:
 		legacy_completion = saved.get("legacy_completion", {})
 	if int(saved.get("campaign_version", 1)) != CAMPAIGN_VERSION:
-		legacy_completion = completed.duplicate(true)
+		legacy_completion[str(saved.get("campaign_version", 1))] = completed.duplicate(true)
 		completed.clear()
 		unaided.clear()
 		level_index = 0
@@ -131,6 +136,7 @@ func _save() -> void:
 			"sound": sound_on, "reduced_motion": reduced_motion}))
 
 func _load_level(index: int) -> void:
+	state_revision += 1
 	level_index = clampi(index, 0, levels.size() - 1)
 	rules.configure(levels[level_index])
 	removed = 0
@@ -145,6 +151,8 @@ func _load_level(index: int) -> void:
 	peak = 0
 	undos_used = 0
 	hints_used = 0
+	returns_used = 0
+	hint_return_id = -1
 	animating = 0
 	screen = "play"
 	_save()
@@ -154,66 +162,85 @@ func _play(stream: AudioStream) -> void:
 		audio.stream = stream
 		audio.play()
 
-func _take(index: int) -> void:
-	# Rules update immediately. Visual flights must never discard a legal click.
-	if screen != "play" or not rules.exposed(index, removed):
-		return
-	var before := removed
-	var next: int = rules.collect(index, removed)
-	if next == removed:
-		return
+func _remember() -> void:
 	history.append({"mask": removed, "tray": tray.duplicate(), "matched": matched, "peak": peak})
-	removed = next
-	hint_index = -1
-	keyboard_index = -1
-	var color: int = rules.screws[index].color
-	var insert_at := tray.size()
-	for k in tray.size():
-		if int(rules.screws[tray[k]].color) == color:
-			insert_at = k + 1
-	tray.insert(insert_at, index)
+
+func _take(index: int) -> void:
+	# Visual animations never block a legal action.
+	if screen != "play":
+		return
+	var next: Dictionary = rules.collect(index, removed, tray)
+	if next.is_empty():
+		return
+	_remember()
+	var line: Array[int] = tray.duplicate()
+	line.append(index)
 	flights.append({"from": BOARD + Vector2(rules.screws[index].x, rules.screws[index].y),
-		"to": Vector2(108 + insert_at * 84, 818), "color": color, "t": 0.0})
-	var matching: Array[int] = []
-	for s in tray:
-		if int(rules.screws[s].color) == color:
-			matching.append(s)
-	if matching.size() == 3:
-		matched += 1
-		for s in matching:
-			bursts.append({"pos": Vector2(108 + tray.find(s) * 84, 818), "color": color, "t": -0.18})
-		tray = tray.filter(func(s): return not matching.has(s))
-		_play(sound_match)
-	else:
-		_play(sound_pick)
+		"to": Vector2(108 + tray.size() * 84, 818), "color": int(rules.screws[index].color), "t": 0.0})
+	_apply_move(next, line)
+
+func _return_screw(index: int) -> void:
+	if screen not in ["play", "full"]:
+		return
+	var next: Dictionary = rules.put_back(index, removed, tray)
+	if next.is_empty():
+		return
+	_remember()
+	var slot := tray.find(index)
+	var line: Array[int] = tray.duplicate()
+	line.erase(index)
+	flights.append({"from": Vector2(108 + slot * 84, 818),
+		"to": BOARD + Vector2(rules.screws[index].x, rules.screws[index].y),
+		"color": int(rules.screws[index].color), "t": 0.0})
+	returns_used += 1
+	_apply_move(next, line)
+	_toast("Returned to panel %d." % (int(rules.screws[index].plate) + 1))
+
+func _apply_move(next: Dictionary, visual_line: Array[int]) -> void:
+	state_revision += 1
+	var before := removed
+	removed = int(next.mask)
+	tray.assign(next.tray)
+	matched += int(next.sets)
+	hint_index = -1
+	hint_return_id = -1
+	keyboard_index = -1
+	for index in next.cleared:
+		bursts.append({"pos": Vector2(108 + visual_line.find(index) * 84, 818),
+			"color": int(rules.screws[index].color), "t": -0.18})
+	_play(sound_match if int(next.sets) > 0 else sound_pick)
 	peak = maxi(peak, tray.size())
-	for p in rules.plates.size():
-		if rules.plate_active(p, before) and not rules.plate_active(p, removed):
-			fading[p] = 0.32
+	for panel in rules.plates.size():
+		if rules.plate_active(panel, before) and not rules.plate_active(panel, removed):
+			fading[panel] = 0.32
+		elif rules.plate_active(panel, removed):
+			fading.erase(panel)
 	animating = 0.05 if reduced_motion else 0.3
-	if removed == rules.all_mask:
+	screen = _play_screen()
+	if rules.is_won(removed, tray):
 		completed[str(level_index)] = true
 		if undos_used == 0 and hints_used == 0:
 			unaided[str(level_index)] = true
 		_save()
-		_finish_after_animation("won")
-	elif tray.size() >= Rules.CAPACITY:
-		_finish_after_animation("lost")
+		_finish_after_animation()
+	elif screen == "full":
+		_toast("Tray full. Tap a tray screw to put it back.")
 
-func _finish_after_animation(result: String) -> void:
-	# Ignore a delayed result if a level was restarted or a move was undone.
-	var expected_mask := removed
-	var expected_level := level_index
+func _play_screen() -> String:
+	return "full" if tray.size() >= Rules.CAPACITY else "play"
+
+func _finish_after_animation() -> void:
+	var expected_revision := state_revision
 	await get_tree().create_timer(0.42).timeout
-	if removed == expected_mask and level_index == expected_level:
-		screen = result
-		if result == "won":
-			_play(sound_win)
+	if state_revision == expected_revision and rules.is_won(removed, tray):
+		screen = "won"
+		_play(sound_win)
 
 func _undo() -> void:
 	if history.is_empty():
 		_toast("No moves to undo.")
 		return
+	state_revision += 1
 	var state: Dictionary = history.pop_back()
 	undos_used += 1
 	removed = state.mask
@@ -224,21 +251,21 @@ func _undo() -> void:
 	bursts.clear()
 	fading.clear()
 	hint_index = -1
+	hint_return_id = -1
 	animating = 0
-	screen = "play"
+	screen = _play_screen()
 
 func _hint() -> void:
-	if screen != "play":
+	if screen not in ["play", "full"]:
 		return
-	var route: Array[int] = rules.solve(removed, 60000)
-	if not route.is_empty() and route[0] >= 0:
+	var route: Array[int] = rules.solve(removed, tray, 30000)
+	if not route.is_empty() and route[0] != -1:
 		hints_used += 1
-		hint_index = route[0]
-		_toast("Try the highlighted screw.")
-	elif rules.exhausted:
-		_toast("No quick hint found. Try undoing a move.")
+		hint_index = route[0] if route[0] >= 0 else -1
+		hint_return_id = -route[0]-2 if route[0] < -1 else -1
+		_toast("Return the highlighted tray screw." if hint_return_id >= 0 else "Take the highlighted screw.")
 	else:
-		_toast("This order is stuck. Undo to make room.")
+		_toast("No quick route found. Try returning a screw or undoing.")
 
 func _toast(text: String) -> void:
 	message = text
@@ -249,7 +276,7 @@ func _action(action: String) -> void:
 		"levels": screen = "levels"
 		"help": screen = "help"
 		"inspect": screen = "inspect"
-		"close": screen = "play"
+		"close": screen = _play_screen()
 		"sound":
 			sound_on = not sound_on
 			_save()
@@ -278,6 +305,12 @@ func _gui_input(event: InputEvent) -> void:
 				_action(b.action)
 				accept_event()
 				return
+		if screen in ["play", "full"]:
+			for slot in tray.size():
+				if point.distance_to(Vector2(108 + slot * 84, 818)) < 35:
+					_return_screw(tray[slot])
+					accept_event()
+					return
 		if screen != "play":
 			return
 		# Hit test the top visible screw, with a larger touch target than its head.
@@ -291,18 +324,24 @@ func _gui_input(event: InputEvent) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
+	if event.keycode >= KEY_1 and event.keycode <= KEY_7 and screen in ["play", "full"]:
+		var slot: int = event.keycode - KEY_1
+		if slot < tray.size():
+			_return_screw(tray[slot])
+		get_viewport().set_input_as_handled()
+		return
 	match event.keycode:
 		KEY_ESCAPE:
 			if screen in ["help", "levels", "inspect"]:
-				screen = "play"
+				screen = _play_screen()
 		KEY_U, KEY_Z:
-			if screen in ["play", "lost"]:
+			if screen in ["play", "full"]:
 				_undo()
 		KEY_R: _load_level(level_index)
 		KEY_H: _hint()
 		KEY_I:
-			if screen in ["play", "inspect"]:
-				screen = "play" if screen == "inspect" else "inspect"
+			if screen in ["play", "full", "inspect"]:
+				screen = _play_screen() if screen == "inspect" else "inspect"
 		KEY_M: _action("sound")
 		KEY_ENTER, KEY_SPACE:
 			if screen == "won":
@@ -396,23 +435,23 @@ func _draw() -> void:
 	_button(Rect2(64, 888, 184, 57), "Undo", "undo")
 	_button(Rect2(268, 888, 184, 57), "Hint", "hint", true)
 	_button(Rect2(472, 888, 184, 57), "Restart", "restart")
-	var guidance := "Clear a panel to reach the screws underneath."
-	if tray.size() >= 6:
-		guidance = "Complete a triple next, or undo."
+	var guidance := "Tap a tray screw to return it. Keyboard: 1–7."
+	if tray.size() >= 7:
+		guidance = "Tray full. Return a screw to make space."
 	elif tray.size() >= 5:
-		guidance = "Two spaces left. Plan your next match."
+		guidance = "Keep matching colours next to each other."
 	_center(guidance, 360, 978, 15, Color("b1624b") if tray.size() >= 5 else MUTED)
-	if message_time > 0 and screen == "play":
+	if message_time > 0 and screen in ["play", "full"]:
 		_box(Rect2(60, 698, 600, 40), INK, 12)
 		_center(message, 360, 724, 17, PAPER)
-	if screen != "play":
+	if screen not in ["play", "full"]:
 		buttons.clear()
 		draw_rect(Rect2(0, 0, 720, 1000), Color(0.12, 0.21, 0.18, 0.62))
 		match screen:
 			"help": _draw_help()
 			"inspect": _draw_inspect()
 			"levels": _draw_levels()
-			"won", "lost": _draw_result()
+			"won": _draw_result()
 
 func _draw_board() -> void:
 	_box(Rect2(48, 241, 624, 492), Color("e9e6da"), 22, Color("dfdfd2"))
@@ -462,15 +501,21 @@ func _draw_board() -> void:
 		_screw(pos, int(f.color), 26, 1.0-t*0.25, t*PI)
 
 func _draw_tray() -> void:
-	_text("LAST SPACE — COMPLETE A TRIPLE" if tray.size() >= 6 else "COLLECT THREE. KEEP SOME SPACE.", Vector2(65, 768), 13, Color("b1624b") if tray.size() >= 6 else MUTED, true)
+	_text("TRAY FULL — TAP A SCREW TO RETURN" if tray.size() >= 7 else "MATCH THREE IN A ROW. ORDER MATTERS.", Vector2(65, 768), 13, Color("b1624b") if tray.size() >= 6 else MUTED, true)
 	_text("%d / 7" % tray.size(), Vector2(607, 768), 14, Color("b1624b") if tray.size() >= 5 else MUTED)
 	_box(Rect2(64, 785, 592, 70), Color("dfdfd1"), 18)
 	for k in 7:
 		var pos := Vector2(108 + k * 84, 818)
 		draw_circle(pos, 29, Color("d2d5c7"), true, -1, true)
 		draw_arc(pos, 28, 0, TAU, 36, Color("c6cabc"), 1, true)
+		_center(str(k+1), pos.x, 874, 13, MUTED)
+		if k < 6:
+			draw_line(pos + Vector2(34, 0), pos + Vector2(50, 0), MUTED, 1.0, true)
+			draw_line(pos + Vector2(46, -3), pos + Vector2(50, 0), MUTED, 1.0, true)
 		if k < tray.size():
 			_screw(pos, int(rules.screws[tray[k]].color), 25)
+			if tray[k] == hint_return_id or (screen in ["play", "full"] and hover.distance_to(pos) < 30):
+				draw_arc(pos, 32, 0, TAU, 40, INK, 2.5, true)
 		else:
 			draw_circle(pos, 2, Color("b4bcac"), true, -1, true)
 	for b in bursts:
@@ -484,22 +529,22 @@ func _draw_tray() -> void:
 func _draw_help() -> void:
 	_box(Rect2(55, 150, 610, 707), PAPER, 26)
 	_text("A little order.", Vector2(90, 218), 36, INK, true)
-	_text("Clear every panel, three screws at a time.", Vector2(91, 258), 21, MUTED)
+	_text("Clear the panels and empty the tray.", Vector2(91, 258), 21, MUTED)
 	var instructions := [
-		["01", "Take an exposed screw", "Tap any screw you can see. Panels above", "must be removed to reach the screws below."],
-		["02", "Make a set of three", "Three matching colours clear from the tray.", "The stamped symbols match too."],
-		["03", "Leave yourself some room", "Seven unmatched screws fill the tray.", "Undo freely and try a different order."]]
+		["01", "Keep your order", "Each screw joins the right end of the tray.", "Colours are never rearranged for you."],
+		["02", "Match three in a row", "Three matching neighbours disappear.", "Separated matches stay in the tray."],
+		["03", "Put a screw back", "Tap a tray screw to return it to its panel.", "Closing the gap can create a triple."]]
 	for i in instructions.size():
 		var y := 317 + i * 115
 		_text(instructions[i][0], Vector2(92, y), 19, Color("b1624b"), true)
 		_text(instructions[i][1], Vector2(139, y), 23, INK, true)
 		_text(instructions[i][2], Vector2(139, y + 30), 17, MUTED)
 		_text(instructions[i][3], Vector2(139, y + 54), 17, MUTED)
-	_center("Keyboard: arrows to choose, Enter to take.", 360, 666, 17, MUTED)
+	_center("Arrows choose · Enter takes · 1–7 return", 360, 666, 17, MUTED)
 	_center("U undo · H hint · I inspect · R restart · M sound", 360, 695, 17, MUTED)
 	_button(Rect2(91, 725, 270, 52), "Motion: low" if reduced_motion else "Motion: full", "motion", false, true)
 	_button(Rect2(379, 725, 250, 52), "Let’s begin", "close", true)
-	_center("Aim for an unaided solve. Undo is always available.", 360, 823, 16, MUTED)
+	_center("Returning screws is part of the puzzle. No penalty.", 360, 823, 16, MUTED)
 
 func _draw_inspect() -> void:
 	_box(Rect2(55, 123, 610, 777), PAPER, 26)
@@ -542,17 +587,11 @@ func _draw_levels() -> void:
 	_button(Rect2(91, 751, 538, 56), "Back to the workbench", "close", true)
 
 func _draw_result() -> void:
-	var won := screen == "won"
 	_box(Rect2(74, 303, 572, 381), PAPER, 26)
 	_center("STUDY %02d" % (level_index+1), 360, 353, 15, MUTED, true)
-	_center("All in order." if won else "No room left.", 360, 413, 38, INK, true)
+	_center("All in order.", 360, 413, 38, INK, true)
 	var result_note := "Unaided solve." if undos_used == 0 and hints_used == 0 else "%d undos  /  %d hints" % [undos_used, hints_used]
-	_center(result_note if won else "Seven unmatched screws. Rethink the order.", 360, 459, 20, MUTED)
-	if won:
-		_center("%d sets collected  /  %d spaces used at most" % [matched, peak], 360, 508, 17, MUTED)
-		_button(Rect2(112, 544, 496, 61), "Next study" if level_index < levels.size()-1 else "Back to collection", "next", true)
-		_button(Rect2(218, 616, 284, 42), "Play this study again", "restart", false, true)
-	else:
-		_center("Undo is always available.", 360, 508, 18, MUTED)
-		_button(Rect2(112, 544, 238, 61), "Undo last move", "undo", true)
-		_button(Rect2(368, 544, 240, 61), "Start again", "restart")
+	_center(result_note, 360, 459, 20, MUTED)
+	_center("%d sets  /  %d returns  /  peak tray %d" % [matched, returns_used, peak], 360, 508, 17, MUTED)
+	_button(Rect2(112, 544, 496, 61), "Next study" if level_index < levels.size()-1 else "Back to collection", "next", true)
+	_button(Rect2(218, 616, 284, 42), "Play this study again", "restart", false, true)

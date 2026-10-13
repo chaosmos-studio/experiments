@@ -6,7 +6,7 @@ from audit_levels import Board
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMES = [
-    'First turn', 'A little order', 'Under the surface', 'Cross grain',
+    'In a row', 'A step back', 'Under the surface', 'Cross grain',
     'Three of a kind', 'Hidden in plain sight', 'Small decisions', 'The overlap',
     'A careful hand', 'Colour study', 'Leave some room', 'Loose ends',
     'Between the layers', 'A new angle', 'The quiet middle', 'Stacked odds',
@@ -31,20 +31,62 @@ def exposed(level, mask, i):
     return True
 
 
-def held(level, mask):
-    counts = [0]*6
-    for i, s in enumerate(level['screws']):
-        if mask >> i & 1:
-            counts[s['color']] += 1
-    return [n % 3 for n in counts]
+def ordered_word(rng, count, colors):
+    groups = [i % colors for i in range(count)]
+    rng.shuffle(groups)
+    word = []
+    for color in groups:
+        positions = list(range(len(word)+1))
+        rng.shuffle(positions)
+        for pos in positions:
+            trial = word[:pos] + [color]*3 + word[pos:]
+            stack, peak = [], 0
+            for c in trial:
+                stack.append(c)
+                if len(stack) >= 3 and stack[-3:] == [c]*3:
+                    del stack[-3:]
+                peak = max(peak, len(stack))
+            if peak < 7:
+                word = trial
+                break
+        else:
+            raise AssertionError('Appending a complete triple should remain possible')
+    return word
+
+
+def return_demo(board):
+    # A,B,A,A -> return B -> A,A,A clears. Check a full winning continuation.
+    def visit(mask, line, route):
+        if len(route) == 4:
+            next_mask, next_line = board.put_back(mask, line, route[1])
+            if next_line:
+                return None
+            try:
+                solution, _ = board.solve(next_mask, next_line)
+            except TimeoutError:
+                return None
+            if solution is not None:
+                return {'takes': route, 'return_id': route[1], 'after': solution}
+            return None
+        for i in board.choices(mask):
+            if route:
+                same = board.colors[i] == board.colors[route[0]]
+                if same != (len(route) != 1):
+                    continue
+            next_mask, next_line = board.take(mask, line, i)
+            result = visit(next_mask, next_line, route + [i])
+            if result:
+                return result
+        return None
+    return visit(0, (), [])
 
 
 def candidate(number, attempt):
-    seed = 128000 + number * 10000 + attempt
+    seed = 728000 + number * 10000 + attempt
     rng = random.Random(seed)
     plates, screws = [], []
     count = min(5 + number//3, 12)
-    colors = 4 if number < 3 else 5 if number < 18 else 6
+    colors = 3 if number < 3 else 4 if number < 12 else 5 if number < 24 else 6
     # Lattice-aligned plates make overlap and hit targets unambiguous.
     for p in range(count):
         vertical = (p % 2 == 1)
@@ -66,24 +108,16 @@ def candidate(number, attempt):
         i = rng.choice(choices)
         route.append(i)
         mask |= 1 << i
-    # Assign colours along that route, always leaving room to complete triples.
-    remaining = [0]*6
-    for p in range(count):
-        remaining[p % colors] += 3
-    tray = [0]*6
-    peak = 0
+    # A reducible ordered word gives a safe route with deliberate interleaving.
+    word = ordered_word(rng, count, colors)
+    for index, color in zip(route, word):
+        screws[index]['color'] = color
+    board = Board(level)
+    mask, line, peak = 0, (), 0
     for index in route:
-        choices = [c for c in range(colors) if remaining[c] > 0]
-        safe = [c for c in choices if sum(tray) + (1 if tray[c] < 2 else -2) < 7]
-        # Six single colours can fill the safe space with no possible triple.
-        # Reject that candidate instead of producing an impossible witness.
-        if not safe:
-            return None
-        c = rng.choice(safe)
-        screws[index]['color'] = c
-        remaining[c] -= 1
-        tray[c] = (tray[c] + 1) % 3
-        peak = max(peak, sum(tray))
+        mask, line = board.take(mask, line, index)
+        peak = max(peak, len(line))
+    assert board.won(mask, line)
     level['solution'] = route
     level['witness_peak'] = peak
     level['seed'] = seed
@@ -94,13 +128,13 @@ def candidate(number, attempt):
 def make(number):
     # Reject both arbitrary-tapping wins and boards solved by local matching alone.
     if number < 3:
-        random_band, greedy_band = (0.18, 0.38), (0.70, 0.96)
+        random_band, greedy_band = (0.01, 0.18), (0.65, 0.94)
     elif number < 12:
-        random_band, greedy_band = (0.025, 0.16), (0.40, 0.78)
+        random_band, greedy_band = (0.0, 0.075), (0.35, 0.79)
     elif number < 24:
-        random_band, greedy_band = (0.0, 0.045), (0.12, 0.48)
+        random_band, greedy_band = (0.0, 0.025), (0.12, 0.52)
     else:
-        random_band, greedy_band = (0.0, 0.018), (0.025, 0.24)
+        random_band, greedy_band = (0.0, 0.012), (0.025, 0.32)
     for attempt in range(20000):
         level = candidate(number, attempt)
         if level is None:
@@ -115,7 +149,7 @@ def make(number):
         if not greedy_band[0] <= greedy_result['win_rate'] <= greedy_band[1]:
             continue
         try:
-            route, visits = board.solve(limit=12000)
+            route, visits = board.solve(limit=3000)
         except TimeoutError:
             continue
         if route is None:
@@ -127,21 +161,35 @@ def make(number):
             continue
         if not greedy_band[0] <= screen_greedy['win_rate'] <= greedy_band[1]:
             continue
-        level['failure_route'] = screen_random['loss_route']
-        assert level['failure_route']
+        level['full_route'] = screen_random['full_route']
+        if not level['full_route']:
+            continue
+        if number == 0:
+            demo = return_demo(board)
+            if not demo:
+                continue
+            level['return_demo'] = demo
         return level
     raise RuntimeError(f'Could not find a suitable study {number+1}')
 
 
 def verify(level):
-    mask = 0
-    for i in level['solution']:
-        assert exposed(level, mask, i), ('covered', i)
-        assert sum(held(level, mask)) < 7
-        mask |= 1 << i
-        assert sum(held(level, mask)) < 7
-    assert mask == (1 << len(level['screws'])) - 1
-    assert sum(held(level, mask)) == 0
+    # Separate coordinate-based exposure check plus the ordered-tray model.
+    board = Board(level)
+    mask, line = 0, ()
+    for index in level['solution']:
+        assert exposed(level, mask, index)
+        mask, line = board.take(mask, line, index)
+        assert len(line) < 7
+    assert board.won(mask, line)
+    mask, line = 0, ()
+    for index in level['full_route']:
+        assert exposed(level, mask, index)
+        mask, line = board.take(mask, line, index)
+    assert len(line) == 7 and not board.won(mask, line)
+    for index in line:
+        restored_mask, restored_line = board.put_back(mask, line, index)
+        assert len(restored_line) < 7 and not restored_mask & (1 << index)
 
 
 if __name__ == '__main__':

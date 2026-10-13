@@ -7,7 +7,7 @@ Every push to `main` runs `.github/workflows/web.yml`:
 1. Download pinned Godot 4.5.2 and verify both archives with SHA-256.
 2. Import the project, regenerate levels, audit difficulty, and run rule and scene tests.
 3. Export the single-threaded WebGL 2 build.
-4. Run Chromium checks at desktop and phone sizes, including touch input.
+4. Run Chromium checks at desktop and phone sizes, including ordered matching, screw returns, full-tray recovery, and touch input.
 5. Upload the web build and test screenshots as Actions artifacts.
 6. Publish the tested build to GitHub Pages.
 

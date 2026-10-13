@@ -1,6 +1,6 @@
 # Rivet
 
-A quiet sorting puzzle made in Godot. Remove exposed screws, collect matching triples, and keep space in the tray.
+A quiet sorting puzzle made in Godot. Keep screws in removal order, match three neighbours, and return pieces to their panels.
 
 [Play Rivet](https://shravangoswami.com/game-experiment/)
 
@@ -21,9 +21,9 @@ godot --headless --path . --script res://tests/run_tests.gd
 
 ## Controls
 
-Tap a screw to collect it. Match three colours or symbols to clear them. Seven unmatched screws fill the tray.
+Tap an exposed screw to add it to the right end of the tray. Three adjacent screws with the same colour or symbol clear. Tap any unmatched tray screw to return it to its original panel; closing the gap can create a match. A full tray blocks collection until you return a screw. Clear both the panels and tray to win.
 
-Keyboard: arrows select, Enter collects, U undoes, H hints, R restarts, M toggles sound, I inspects the layers.
+Keyboard: arrows select, Enter collects, 1–7 return tray slots, U undoes, H hints, R restarts, M toggles sound, I inspects the layers.
 
 ## Notes
 

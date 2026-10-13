@@ -1,50 +1,50 @@
 # Rivet
 
-Remove exposed screws from overlapping panels. Three matching screws clear from a seven-slot tray. Clear every panel to finish a study.
+Remove exposed screws from overlapping panels. Keep their order in a seven-slot tray and clear matching neighbours.
 
 ## Rules
 
-- A panel remains until all three of its screws are removed.
-- A screw is covered when its centre lies under an active panel above it.
-- Collected screws are grouped by colour in the tray. Three of one colour clear immediately.
-- Seven unmatched screws end the attempt. The seventh screw may complete a triple and clear safely.
-- Undo restores the exact board, tray, and set count, including cleared panels and triples.
-- Hints search for a winning continuation. A stuck state prompts undo; a search limit never produces an unverified hint.
+- A collected screw joins the right end of the tray. Pieces never sort themselves.
+- Three adjacent screws with the same colour or symbol disappear. Separated matches remain.
+- Tap any unmatched tray screw to return it to its original hole. The remaining pieces close the gap and any new triples clear, including cascades.
+- A panel disappears when its last screw is removed. Returning an unmatched screw restores that panel, which may cover lower screws again. Matched screws cannot be returned.
+- A covered screw cannot be collected. Coverage uses its centre and active panels above it.
+- Seven unmatched screws block further collection. The tray stays interactive: return a screw, undo, inspect, or request a hint. There is no loss overlay.
+- Both the board and tray must be empty to win.
+- Undo restores the exact previous board, tray order, set count, and peak occupancy. Returns are ordinary moves and can also be undone.
 
-## Content
+For example, A B A A stays in the tray. Return B and the remaining A A A clears.
 
-36 deterministic studies, each recording its seed, winning route, and losing route. Version 2 replaces the original campaign after play feedback showed that the first four studies could not lose and many later ones required little planning.
+## Hints and progress
 
-Generation retains a safe solution, then rejects layouts that are too easy for random play or for a greedy policy that completes available triples and pairs without looking ahead. Separate fixed seeds screen candidates and audit the final campaign. Both Python and GDScript verify every winning and losing route; the runtime solver independently solves every board. See [difficulty results](BALANCE.md).
+Hints first search for a forward solution from the current ordered tray. If needed, they test single returns and front/back return sequences, each followed by a forward search. A hint always has a verified winning continuation; the bounded search is not exhaustive. If no route is found within its budget, it suggests returning or undoing without claiming the puzzle is impossible.
 
-- Studies 1–3, Learn: four colours, real tray pressure from the first board.
-- Studies 4–12, Plan: five colours and layered choices.
-- Studies 13–24, Think ahead: stronger dependencies and five or six colours.
-- Studies 25–36, Master: six colours; immediate matching is rarely enough.
+Inspect shows remaining colours on each numbered panel, including covered screws. It does not count as a hint. A solve without hints or undo earns a filled completion mark; other completion earns an outline. Returns do not disqualify a clean solve. The result shows the number of return actions taken, including returns later undone.
 
-The seven-slot rule is unchanged. These are broad difficulty bands, not a claim that adjacent studies are strictly ordered by human difficulty. Simulation is a regression check, not proof that a puzzle is enjoyable.
+Campaign version 3 rebuilds all 36 studies for ordered matching. Each records a seed, a winning collection sequence, and a sequence that fills the tray. The first study also records a verified gap-closing return example. Generation screens random and greedy collection policies, then a separate audit checks fresh samples. See [difficulty results](BALANCE.md).
 
-Inspect shows remaining colours for every numbered panel, including covered screws. It does not remove pieces or reveal a solution and does not count as a hint. Players can plan with visible information rather than guess. A solve without hints or undo earns a filled completion mark; assisted completion earns an outline. There are no limits on assistance.
+- Studies 1–3: Learn, three colours.
+- Studies 4–12: Plan, four colours.
+- Studies 13–24: Think ahead, five colours.
+- Studies 25–36: Master, six colours.
 
-Campaign version 2 starts old saves at study 1 with a fresh completion record. Previous completion is retained in `legacy_completion`; sound and motion preferences are preserved. New-version progress persists normally.
+Old campaigns restart at study 1 with fresh completion. Earlier completion records remain in `legacy_completion`, keyed by campaign version. Sound and motion preferences survive. Version 3 completion persists normally; an in-progress board resets on reload.
 
-## Presentation
+## Presentation and controls
 
-A warm paper workbench, muted metal panels, coloured screw heads, and six stamped symbols. Sound and motion can be disabled. Mouse, touch, and keyboard are supported. Campaign completion and preferences are saved locally. An in-progress board resets on reload.
+A warm paper workbench, muted panels, coloured heads, and six stamped symbols. Numbered slots and arrows show tray order. Tap a board screw to collect; tap a tray screw to return. Arrows select a board screw, Enter collects, 1–7 return tray slots, U undoes, H hints, I inspects, R restarts, and M toggles sound. Sound and motion can be disabled.
 
-All code, vector drawing, and synthesized sound are created for this repository. The other three games were used only to understand mechanics and web-export configuration.
+All code, vector drawing, and synthesized sound were created for this repository. The other three games informed mechanics and web-export configuration only.
 
 ## Architecture
 
-- `scripts/puzzle.gd`: pure rules and bounded depth-first solver, using a 64-bit removal mask.
+- `scripts/puzzle.gd`: pure transitions and solver; state contains a removal mask and ordered screw IDs.
 - `scripts/main.gd`: drawing, input, animation, undo, and local persistence.
 - `data/levels.json`: generated campaign and witness routes.
 - `tools/generate_levels.py`: deterministic generation and candidate screening.
-- `tools/audit_levels.py`: independent solver, random/greedy simulations, and difficulty gates.
-- `tests/run_tests.gd`: rule, solver, and scene-controller tests.
-- `tests/browser/game.spec.js`: real exported-game desktop and touch checks.
-- `tools/prepare_web.py`: splits the engine binary into static-host-friendly chunks, verifying byte equality.
+- `tools/audit_levels.py`: independent solver, simulations, and difficulty gates.
+- `tests/run_tests.gd`: rules, solver, returns, controller, and save migration.
+- `tests/browser/game.spec.js`: actual desktop and touch input in the exported game.
+- `tools/prepare_web.py`: splits the engine binary into static-host-friendly chunks and verifies byte equality.
 
-## Limits
-
-No physics simulation, accounts, multiplayer, monetization, or endless-mode claims. Panel disappearance is a short visual transition, not a physics event. The first build is a playable experiment; market success and retention remain untested.
+No physics simulation, accounts, multiplayer, monetization, or endless mode. Human difficulty and enjoyment still need play feedback.
