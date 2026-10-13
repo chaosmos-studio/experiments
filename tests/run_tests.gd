@@ -104,16 +104,20 @@ func run() -> void:
 	check(not game.sound_on and game.reduced_motion, "Migration preserves preferences")
 	game._load_level(0)
 	var demo: Dictionary = levels[0].return_demo
+	# JSON numbers are floats; compare ordered IDs using the same integer type.
+	var demo_order: Array[int] = []
+	for index in demo.takes:
+		demo_order.append(int(index))
 	for index in demo.takes:
 		game._take(int(index))
-	check(game.tray == demo.takes and game.matched == 0, "Rapid input keeps A B A A exactly ordered")
+	check(game.tray == demo_order and game.matched == 0, "Rapid input keeps A B A A exactly ordered")
 	var previous_mask: int = game.removed
 	game._return_screw(int(demo.return_id))
 	check(game.tray.is_empty() and game.matched == 1, "Controller return creates the adjacent triple")
 	check(game.returns_used == 1 and game.hints_used == 0 and game.undos_used == 0, "Return is not assistance")
 	check(not (game.removed & (1 << int(demo.return_id))), "Controller restores original screw")
 	game._undo()
-	check(game.removed == previous_mask and game.tray == demo.takes and game.matched == 0, "Undo reverses return and gap match exactly")
+	check(game.removed == previous_mask and game.tray == demo_order and game.matched == 0, "Undo reverses return and gap match exactly")
 	game._load_level(0)
 	for index in levels[0].full_route:
 		game._take(int(index))
