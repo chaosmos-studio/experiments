@@ -1,12 +1,12 @@
 const {test,expect}=require('@playwright/test');
-const levels=require('../../data/levels.json');
-const shapes=require('../../data/shapes.json');
+const levels=require('../../experiments/tessera/data/levels.json');
+const shapes=require('../../experiments/tessera/data/shapes.json');
 
 test('Tessera: placement, real loss, undo, keyboard, queue and completion',async({page},info)=>{
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(/SCRIPT ERROR|Parse Error|ERROR:/.test(m.text()))errors.push(m.text());});
-  await page.goto('/');
+  await page.goto('/experiments/tessera/');
   await page.waitForFunction(()=>window.tesseraReady===true,null,{timeout:90000});
   await expect(page.locator('#loading')).toBeHidden();
   const state=page.locator('#game-state');
@@ -81,6 +81,6 @@ test('Tessera: placement, real loss, undo, keyboard, queue and completion',async
   await tap(461,65);await tap(580,564);
   await expect(state).toHaveAttribute('data-level','18');
   await page.screenshot({path:info.outputPath('tessera-master.png')});
-  await expect(page.locator('#archive-link')).toHaveAttribute('href','experiments/rivet/');
+  await expect(page.locator('#archive-link')).toHaveAttribute('href','../../');
   expect(errors).toEqual([]);
 });

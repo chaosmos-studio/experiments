@@ -1,29 +1,56 @@
-# Tessera
+# Filament
 
-The screw-sorting concept was rejected after play feedback. Rivet is preserved in `experiments/rivet/`; this experiment starts from block placement, another family in the original research pool. This is a deliberate new choice, not a second random draw disguised as the first.
+The user found Tessera buggy and too close to Rivet's tray-and-board presentation.
+Filament replaces that interaction with continuous, direct manipulation: pull knots
+in a living web until none of its strands cross. No pieces are added or consumed.
 
-## Why this direction
-
-Apple's August 2026 Arcade announcement describes Block Blast as a chart-leading puzzle built around placing blocks and clearing rows and columns. Sensor Tower's Q2 2025 US review reports substantial downloads and active users for it. Those sources support the category's reach; they do not establish demand for this particular design.
-
-- [Apple, Block Blast on Arcade, August 2026](https://www.apple.com/newsroom/2026/08/apple-arcade-levels-up-with-block-blast-plus-and-art-of-fauna-cozy-puzzles-plus/)
-- [Sensor Tower, US puzzle games Q2 2025](https://sensortower.com/blog/2025-q2-unified-top-5-puzzle%20games-units-us-64bc1644e1714cfff1e615fc)
-- [Original three-year review](RESEARCH.md)
-
-Tessera borrows spatial placement and line clearing. Fixed finite piece sets turn it into short, replayable puzzles. It uses no screws, sorting tray, tilt movement, radial chain reactions, or directional escape, so the core action differs from Rivet, Plumb, Carillon, and Apsis. Code and art are original; no assets or implementation from those three repositories were copied.
+The earlier research suggested visible disorder becoming order, short sessions,
+clear immediate feedback and touch-friendly interaction. Those are the parts kept.
+Untangling is a deliberate design experiment; the research does not establish it as
+one of the three biggest puzzle markets. It is not a new random category draw.
 
 ## Rules
 
-Place upright pieces on empty cells of a six-by-six board. Full rows and columns clear simultaneously, including intersecting lines. Each completed row or column counts toward the target. Colours distinguish pieces but do not affect matching.
+Move circular knots anywhere in the play area. Square knots are anchored. Strands
+may cross while moving. Release the last knot when every crossing and contact is
+clear. Unrelated strands cannot overlap, knots cannot pile up, and a knot must stay
+clear of unrelated strands. Shared endpoints are allowed. Multiple valid shapes
+can solve a web; there are no hidden destination slots.
 
-Choose any of the three current pieces. The next set arrives only after all three have been placed. Queue shows every upcoming piece; nothing is randomly dealt during play. Reach the line target to win. If no current piece fits, or the final pieces run out before the target, the attempt ends. Undo and restart remain available.
+Each drag is one move. Undo restores the whole previous layout. There is no timer
+or irreversible failure. Geometry, not move count or animation, decides completion.
+Hints show a useful move from the current state; in a local minimum they indicate
+one knot's position in a verified solution, which may temporarily increase tangles.
+Hints never move knots automatically. All twelve webs are available from Webs.
 
-Each board has a verified winning route and a legal losing route. The 18 boards form three broad chapters; adjacent boards are not claimed to be strictly ordered by human difficulty. See [audit](BALANCE.md).
+## Feedback and controls
 
-Hints search from the actual board, used pieces and line count. They show a placement only when a complete winning continuation has been verified. The search has a fixed node budget; failure to find a route is not proof that the position is unsolvable. A win without hints or undo earns a clean completion mark. Queue inspection is free.
+Crossed strands glow coral and crossing points carry diamonds. Clear strands glow
+blue; a finished web turns green. Light travels along the lines, knots pulse on
+contact, and the completed web releases a short particle burst. The geometry stays
+straight and stable so the drawn crossings agree with the rules. Motion can be
+reduced, and sound can be muted. Both preferences persist.
 
-## Interaction
+Touch is handled directly, with one active finger. Mouse emulation is disabled to
+avoid duplicate touch actions. Overlapping knots cycle selection so a knot cannot
+become permanently hidden. Loss of focus cancels an unfinished drag. Bounds keep
+knots inside the playable area. A win only triggers after release, so moving through
+a clear intermediate arrangement cannot steal control.
 
-Select a piece and tap its top-left board cell, or drag it there. The mouse preview marks invalid placements in red and outlines lines that will clear. Pieces cannot rotate. Keyboard: 1–3 select, arrows position, Enter places. U undoes, H hints, R restarts. Sound and motion can be toggled in help. Preferences and completion are local; an in-progress board restarts on reload.
+Keyboard: Tab cycles knots, arrows move, Shift gives finer movement, Enter releases,
+Escape cancels, U undoes, H hints, R resets, L opens the web list.
 
-The visual direction uses a dark board, ceramic blocks, mint line-clear feedback and restrained type. The game has no timer, ads, accounts, analytics, energy system or purchases.
+## Content and verification
+
+Twelve authored planar graph families have deterministic scrambled layouts. The
+first four introduce direct movement; the middle four add anchors and nested webs;
+the last four increase density. All have valid geometric witnesses, checked in both
+Python and Godot. This verifies solvability, not enjoyment or human difficulty.
+
+Native tests cover degenerate geometry, all campaign witnesses, anchors, clamping,
+coincident knot selection, multi-finger ownership, cancellation, undo, release-only
+completion, keyboard input and persisted progress. Playwright exercises exported
+Godot through real mouse and touch events on desktop and phone viewports, including
+a real solve, reset, undo, help, settings and an anchored late-game web.
+
+No account, ads, analytics, remote assets, purchases, or energy timers.

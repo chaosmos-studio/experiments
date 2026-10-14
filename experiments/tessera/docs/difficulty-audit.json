@@ -1,0 +1,128 @@
+[
+  {
+    "level": 1,
+    "random_win_rate": 0.058,
+    "greedy_win_rate": 0.346,
+    "solver_nodes": 6,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 2,
+    "random_win_rate": 0.142,
+    "greedy_win_rate": 0.642,
+    "solver_nodes": 23,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 3,
+    "random_win_rate": 0.152,
+    "greedy_win_rate": 0.538,
+    "solver_nodes": 5,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 4,
+    "random_win_rate": 0.03,
+    "greedy_win_rate": 0.668,
+    "solver_nodes": 24,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 5,
+    "random_win_rate": 0.1,
+    "greedy_win_rate": 0.722,
+    "solver_nodes": 16,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 6,
+    "random_win_rate": 0.03,
+    "greedy_win_rate": 0.332,
+    "solver_nodes": 6,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 7,
+    "random_win_rate": 0.048,
+    "greedy_win_rate": 0.5,
+    "solver_nodes": 9,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 8,
+    "random_win_rate": 0.042,
+    "greedy_win_rate": 0.454,
+    "solver_nodes": 9,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 9,
+    "random_win_rate": 0.052,
+    "greedy_win_rate": 0.45,
+    "solver_nodes": 9,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 10,
+    "random_win_rate": 0.042,
+    "greedy_win_rate": 0.432,
+    "solver_nodes": 32,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 11,
+    "random_win_rate": 0.026,
+    "greedy_win_rate": 0.356,
+    "solver_nodes": 30,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 12,
+    "random_win_rate": 0.004,
+    "greedy_win_rate": 0.354,
+    "solver_nodes": 8,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 13,
+    "random_win_rate": 0.012,
+    "greedy_win_rate": 0.26,
+    "solver_nodes": 44,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 14,
+    "random_win_rate": 0.01,
+    "greedy_win_rate": 0.25,
+    "solver_nodes": 33,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 15,
+    "random_win_rate": 0.008,
+    "greedy_win_rate": 0.218,
+    "solver_nodes": 18,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 16,
+    "random_win_rate": 0.016,
+    "greedy_win_rate": 0.188,
+    "solver_nodes": 10,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 17,
+    "random_win_rate": 0.018,
+    "greedy_win_rate": 0.112,
+    "solver_nodes": 205,
+    "attempts_per_policy": 500
+  },
+  {
+    "level": 18,
+    "random_win_rate": 0.004,
+    "greedy_win_rate": 0.038,
+    "solver_nodes": 32,
+    "attempts_per_policy": 500
+  }
+]

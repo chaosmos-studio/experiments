@@ -18,7 +18,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Godot and web templates
@@ -35,10 +35,10 @@ jobs:
           template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$template_dir"
           unzip -j -q /tmp/templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
-      - name: Import and test both projects
+      - name: Import and test all three projects
         run: |
           set -euo pipefail
-          for project in . experiments/rivet; do
+          for project in . experiments/rivet experiments/tessera; do
             godot --headless --editor --path "$project" --import --quit 2>&1 | tee /tmp/import.log
             ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/import.log
             timeout 120s godot --headless --path "$project" --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
@@ -46,8 +46,8 @@ jobs:
             grep -q 'failures=0' /tmp/tests.log
           done
           python3 tools/generate_levels.py
-          git diff --exit-code -- data/levels.json data/shapes.json docs/difficulty-audit.json
-      - name: Export both web games
+          git diff --exit-code -- data/levels.json docs/difficulty-audit.json
+      - name: Export all three web games
         run: bash tools/build_web.sh
       - name: Test desktop and mobile browsers
         run: |

@@ -1,6 +1,10 @@
 {
-  "name": "puzzle-experiments-tests",
+  "name": "filament-puzzle",
   "private": true,
-  "scripts": {"test:web": "playwright test"},
-  "devDependencies": {"@playwright/test": "1.56.1"}
+  "scripts": {
+    "test:web": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
 }

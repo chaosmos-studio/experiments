@@ -1,27 +1,23 @@
-# Web publishing
+# Deployment
 
-GitHub Pages serves two standalone Godot exports:
+Godot 4.5.2, compatibility renderer, single-threaded WebAssembly, GitHub Pages.
 
-| Source | Web path |
+| Project | Public path |
 | --- | --- |
-| Repository root, Tessera | [game-experiment/](https://shravangoswami.com/game-experiment/) |
-| `experiments/rivet/` | [game-experiment/experiments/rivet/](https://shravangoswami.com/game-experiment/experiments/rivet/) |
+| Filament (root) | `/game-experiment/` |
+| Tessera | `/game-experiment/experiments/tessera/` |
+| Rivet | `/game-experiment/experiments/rivet/` |
 
-The previous game is archived as source and remains playable. Its assets, rules, campaign and saves use its own Godot project. Each successful push to `main` rebuilds and tests both games before publishing one Pages artifact. Pages source remains GitHub Actions.
+`main` pushes run native tests for all three projects, verify Filament's generated
+content, export all three, run desktop and phone browser tests, then deploy a single
+Pages artifact. Failed tests block deployment. The existing custom domain is
+`shravangoswami.com`. No Pages settings change is needed.
 
-CI installs pinned Godot 4.5.2 and checks archive hashes, imports both projects, runs both native test suites, regenerates Tessera's levels, exports both builds, validates nested asset paths, and runs desktop and mobile browser tests. Screenshots and the combined web build are uploaded as Actions artifacts.
+`experiments/.gdignore` keeps archived projects out of the root Godot import.
+`tools/build_web.sh` exports each separately and combines their outputs. Relative
+asset paths keep every archived URL independent. Each export uses verified WASM
+chunks and a local loader. Browser screenshots are retained as workflow artifacts.
 
-## Local build
-
-Install Godot 4.5.2 and its web export templates, then:
-
-```sh
-godot --headless --editor --path . --import --quit
-godot --headless --editor --path experiments/rivet --import --quit
-bash tools/build_web.sh
-python3 -m http.server 8000 --directory build/web
-```
-
-Open `http://localhost:8000/` or `http://localhost:8000/experiments/rivet/`. To run browser tests: `npm ci`, `npx playwright install chromium`, and `npm run test:web`.
-
-Both exports use WebGL 2 and single-threaded WebAssembly, with no cross-origin isolation header requirement. Each engine is split into verified relative-path chunks. No accounts or server-side player data are used. Browser restrictions may prevent local progress saving.
+The saved-progress namespaces are separate: `filament.json`, `tessera.json`, and
+Rivet's existing save. Filament saves level completion and preferences, not a
+partially moved web. The game runs without cross-origin isolation headers.

@@ -1,5 +1,6 @@
-# Experiments
+# Past experiments
 
-- [Rivet](rivet/): ordered screw sorting, archived after concept feedback.
+- [Tessera](tessera/) — [play](https://shravangoswami.com/game-experiment/experiments/tessera/)
+- [Rivet](rivet/) — [play](https://shravangoswami.com/game-experiment/experiments/rivet/)
 
-Each experiment is a standalone Godot project and stays playable at its matching web path.
+Each directory is a standalone Godot project.

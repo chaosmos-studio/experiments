@@ -1,36 +1,27 @@
-# Tessera
+# Filament
 
-A block-placement puzzle made in Godot. Clear the target number of rows and columns with a fixed set of pieces.
+Drag glowing knots to untangle a living web.
 
-[Play Tessera](https://shravangoswami.com/game-experiment/) · [Play Rivet](https://shravangoswami.com/game-experiment/experiments/rivet/)
+[Play](https://shravangoswami.com/game-experiment/)
 
-- 18 verified solvable boards with real losing routes
-- Three pieces at a time; upcoming sets are visible
-- Drag a piece, or select it and tap its top-left cell
-- Undo, verified hints, saved progress, sound and reduced motion
+- 12 puzzles with free knots and fixed anchors.
+- Animated strands, sound, undo, hints, and reduced motion.
+- Mouse, touch, and keyboard controls.
+- Progress saved on this device.
 
-Keyboard: 1–3 choose, arrows move, Enter places, U undo, H hint, R restart.
-
-## Run
-
-Open `project.godot` in Godot 4.5.2, or run:
+Use Godot 4.5.2 to open `project.godot`.
 
 ```sh
-godot --path .
-godot --headless --path . --script res://tests/run_tests.gd
+godot --headless --script res://tests/run_tests.gd
+python3 tools/generate_levels.py
+bash tools/build_web.sh
+npm ci
+npx playwright install chromium
+npx playwright test
 ```
 
-Rivet is a separate project in `experiments/rivet/`:
+Pushes to `main` test and deploy all three games with GitHub Pages.
 
-```sh
-godot --path experiments/rivet
-```
+Past experiments: [Tessera](experiments/tessera/) · [Rivet](experiments/rivet/).
 
-## Notes
-
-- [Design and research decision](docs/DESIGN.md)
-- [Original market research](docs/RESEARCH.md)
-- [Difficulty checks](docs/BALANCE.md)
-- [Web publishing](docs/DEPLOYMENT.md)
-
-Every successful push to `main` tests and publishes both games at their matching paths.
+[Design](docs/DESIGN.md) · [Research](docs/RESEARCH.md) · [Deployment](docs/DEPLOYMENT.md)

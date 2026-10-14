@@ -1,8 +1,8 @@
 config_version=5
 
 [application]
-config/name="Tessera"
-config/description="A finite block puzzle. Make room, make a line."
+config/name="Filament"
+config/description="A living web. Pull it apart. Find your flow."
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://assets/icon.svg"
@@ -20,11 +20,11 @@ window/handheld/orientation=1
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
-environment/defaults/default_clear_color=Color(0.055, 0.082, 0.125, 1)
+environment/defaults/default_clear_color=Color(0.063, 0.055, 0.110, 1)
 
 [input_devices]
 pointing/emulate_touch_from_mouse=false
-pointing/emulate_mouse_from_touch=true
+pointing/emulate_mouse_from_touch=false
 
 [audio]
 driver/enable_input=false

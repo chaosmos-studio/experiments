@@ -1,107 +1,105 @@
 extends SceneTree
-const Rules = preload("res://scripts/puzzle.gd")
-var failures := 0
+const Geometry = preload("res://scripts/geometry.gd")
 var assertions := 0
-
-func check(value: bool, label: String) -> void:
-	assertions += 1
-	if not value:
-		failures += 1
-		push_error(label)
-
+var failures := 0
+func check(value: bool,label: String) -> void:
+	assertions+=1
+	if not value: failures+=1;push_error(label)
 func _initialize() -> void:
 	call_deferred("run")
-
-func follow(rules, route: Array, initial: int) -> Dictionary:
-	var board := initial
-	var used := 0
-	var lines := 0
-	for raw in route:
-		var step := Vector3i(int(raw[0]),int(raw[1]),int(raw[2])) if raw is Array else Vector3i(raw)
-		if step.x<0: break
-		var next: Dictionary = rules.place(board,used,lines,step.x,step.y,step.z)
-		check(not next.is_empty(),"Witness move is legal")
-		if next.is_empty(): return {"board":board,"used":used,"lines":lines}
-		check(int(next.board)&int(next.cleared)==0,"Cleared cells leave the board")
-		board = next.board
-		used = next.used
-		lines = next.total
-		if lines>=rules.goal: break
-	return {"board":board,"used":used,"lines":lines}
-
+func vectors(raw: Array) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	for p in raw: result.append(Vector2(p[0],p[1]))
+	return result
 func run() -> void:
+	check(Geometry.intersects(Vector2(0,0),Vector2(10,10),Vector2(0,10),Vector2(10,0)),"Proper crossing")
+	check(Geometry.intersects(Vector2(0,0),Vector2(10,0),Vector2(5,0),Vector2(15,0)),"Collinear overlaps cannot hide a crossing")
+	check(not Geometry.intersects(Vector2(0,0),Vector2(10,0),Vector2(0,10),Vector2(10,10)),"Parallel separated strands")
+	check(Geometry.intersects(Vector2(0,0),Vector2(10,0),Vector2(10,0),Vector2(10,10)),"Unrelated endpoints touching count")
+	var pile: Array[Vector2] = [Vector2(300,400),Vector2(300,400),Vector2(300,400),Vector2(300,400)]
+	check(Geometry.inspect(pile,[[0,1],[2,3]]).count>0,"Collapsed layout never wins")
+	var on_line: Array[Vector2] = [Vector2(100,400),Vector2(500,400),Vector2(300,400)]
+	check(Geometry.inspect(on_line,[[0,1]]).count>0,"A knot cannot hide on a strand")
 	var levels: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/levels.json"))
-	var shapes: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/shapes.json"))
-	var rules := Rules.new()
-	check(levels.size()==18,"Campaign has 18 boards")
-	rules.configure(levels[0],shapes)
-	var cross: int = 0
-	for i in 6: cross |= (1<<i)|(1<<(i*6))
-	var clear := rules.settle(cross)
-	check(clear.lines==2 and clear.board==0 and clear.cleared==cross,"Cross clears row and column simultaneously")
-	check(rules.shape_mask(shapes[0],-1,0)==0,"Negative anchor is invalid")
-	check(rules.shape_mask(shapes[0],5,0)==0,"Shape cannot wrap at edge")
-	check(rules.place(0,0,0,3,0,0).is_empty(),"Future set cannot be played early")
-	check(rules.place(1,0,0,0,0,0).is_empty(),"Occupied cells reject placement")
-	check(rules.available(3)==[2] and rules.available(7)==[3,4,5],"All three pieces are used before next set")
-	check(rules.solve(rules.initial,0,0,0).is_empty() and rules.exhausted,"Limited search never invents a hint")
-	var maximum := 0
+	check(levels.size()==12,"Twelve webs")
 	for level in levels:
-		rules.configure(level,shapes)
-		var state := follow(rules,level.solution,rules.initial)
-		check(rules.status(state.board,state.used,state.lines)=="won","Every board has a winning witness")
-		var route := rules.solve(rules.initial,0,0,15000)
-		check(not route.is_empty(),"Independent runtime solver finds a route")
-		maximum = maxi(maximum,rules.visits)
-		state = follow(rules,route,rules.initial)
-		check(state.lines>=rules.goal,"Solver route reaches target")
-		state = follow(rules,level.failure_route,rules.initial)
-		check(rules.status(state.board,state.used,state.lines)=="lost","Every board has a genuine losing route")
-		check(state.lines<rules.goal,"Using pieces does not automatically win")
-	# Controller and saved progress.
-	var path := "user://tessera.json"
-	var had_save := FileAccess.file_exists(path)
-	var old_save := FileAccess.get_file_as_string(path) if had_save else ""
-	var file := FileAccess.open(path,FileAccess.WRITE)
-	file.store_string(JSON.stringify({"level":0,"sound":false,"reduced_motion":true}));file.close()
+		var initial := vectors(level.points)
+		var solved := vectors(level.solution)
+		check(Geometry.inspect(initial,level.edges).count==int(level.initial_tangles),"Independent Python and Godot agree on initial tangles")
+		check(Geometry.inspect(initial,level.edges).count>0,"Every level starts unsolved")
+		check(Geometry.inspect(solved,level.edges).count==0,"Every solution passes Godot geometry")
+		for a in level.anchors: check(initial[a]==solved[a],"Solution preserves anchors")
+		for p in solved: check(Geometry.clamp_point(p)==p,"All solution coordinates reachable")
+	var had_save := FileAccess.file_exists("user://filament.json")
+	var old_save := FileAccess.get_file_as_string("user://filament.json") if had_save else ""
+	var file := FileAccess.open("user://filament.json",FileAccess.WRITE)
+	file.store_string('{"level":0,"sound":false,"reduced_motion":true}');file.close()
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await process_frame
 	check(not game.sound and game.reduced_motion,"Preferences load")
-	var first: Array = levels[0].solution[0]
-	game._select(int(first[0]))
-	game._place(int(first[0]),int(first[1]),int(first[2]))
-	check(game.history.size()==1 and game.used!=0,"Controller accepts placement")
-	game._undo()
-	check(game.board==int(levels[0].board) and game.used==0 and game.lines==0,"Undo restores board, hand and line count")
-	check(game.undos==1,"Undo assistance is counted")
-	game._hint()
-	check(game.selected>=0 and game.hints==1,"Verified hint selects a piece and placement")
-	game._action("queue")
-	game._action("close")
-	check(game.screen=="play" and game.hints==1,"Queue is free inspection")
+	for index in levels.size():
+		game._load_level(index)
+		var first: Array[Vector2] = game.points.duplicate()
+		if not game.anchors.is_empty():
+			var anchor: int = game.anchors[0]
+			game._press(game.points[anchor],0)
+			game._move(Vector2(400,600));game._release()
+			check(game.points==first and game.moves==0,"Anchors never move")
+		var mobile := 0
+		while mobile in game.anchors: mobile+=1
+		game._press(game.points[mobile],0)
+		game._press(game.points[(mobile+1)%game.points.size()],1)
+		check(game.dragging==mobile and game.pointer_id==0,"Second finger cannot steal drag")
+		game._move(Vector2(-400,2000))
+		check(game.points[mobile]==Vector2(66,764),"Dragging clamps to playable space")
+		game._cancel_drag()
+		check(game.points==first and game.history.is_empty(),"Cancelled drag restores state without a move")
+		game._press(game.points[mobile],-1);game._release()
+		check(game.moves==0,"Tapping does not count as movement")
+		game._press(game.points[mobile],-1);game._move(game.points[mobile]+Vector2(8,0));game._release()
+		check(game.moves==1 and game.history.size()==1,"Drag is one transaction")
+		game._undo()
+		check(game.points==first and game.moves==0,"Undo precisely restores coordinates")
+		game._hint()
+		check(game.points==first and game.hint_node>=0 and game.hint_node not in game.anchors,"Hints guide without moving knots")
+		var solved := vectors(levels[index].solution)
+		for i in solved.size():
+			if i in game.anchors or game.screen=="won": continue
+			if game.points[i].distance_to(solved[i])<1: continue
+			game._press(game.points[i],-1)
+			if game.dragging!=i:
+				game._release()
+				game._press(game.points[i],-1)
+			check(game.dragging==i,"Overlapping knots remain individually reachable")
+			game._move(solved[i])
+			check(game.screen=="play","Crossing zero during a drag does not prematurely win")
+			game._release()
+		check(game.screen=="won" and game.report.count==0,"Physical input route solves every level")
+		check(game.completed.has(str(index)),"Completion saved")
 	game._load_level(0)
-	for action in levels[0].failure_route:
-		game._place(int(action[0]),int(action[1]),int(action[2]))
-	check(game.screen=="lost","Real scene detects loss")
-	game._undo()
-	check(game.screen=="play","Undo recovers from loss")
-	game._load_level(0)
-	for action in levels[0].solution:
-		game._place(int(action[0]),int(action[1]),int(action[2]))
-	check(game.screen=="won" and game.clean.has("0"),"Clean solution wins and is recorded")
-	game._action("next")
-	check(game.level_index==1 and game.used==0,"Next board starts clean")
-	game.queue_free()
-	await process_frame
-	game = load("res://scenes/main.tscn").instantiate()
-	root.add_child(game)
-	await process_frame
-	check(game.level_index==1 and game.completed.has("0") and game.clean.has("0"),"Completion persists across reload")
-	game.queue_free()
-	await process_frame
+	var tab := InputEventKey.new();tab.keycode=KEY_TAB;tab.pressed=true
+	game._key(tab)
+	check(game.focus==0,"Tab selects first knot")
+	var right := InputEventKey.new();right.keycode=KEY_RIGHT;right.pressed=true
+	var before: Vector2=game.points[0]
+	game._key(right)
+	check(game.points[0]==before+Vector2(20,0),"Keyboard moves selected knot")
+	var escape := InputEventKey.new();escape.keycode=KEY_ESCAPE;escape.pressed=true
+	game._key(escape)
+	check(game.points[0]==before and game.moves==0,"Escape cancels keyboard movement")
+	game._key(right)
+	var enter := InputEventKey.new();enter.keycode=KEY_ENTER;enter.pressed=true
+	game._key(enter)
+	check(game.moves==1 and game.dragging==-1,"Enter releases a keyboard move")
+	game._action("help");game._action("sound");game._action("motion");game._action("close")
+	check(game.screen=="play" and game.sound and not game.reduced_motion,"Settings return to current web")
+	game.queue_free();await process_frame
+	var reloaded=load("res://scenes/main.tscn").instantiate();root.add_child(reloaded);await process_frame
+	check(reloaded.completed.size()==12 and reloaded.sound and not reloaded.reduced_motion,"Progress and preferences persist")
+	reloaded.queue_free();await process_frame
 	if had_save:
-		file=FileAccess.open(path,FileAccess.WRITE);file.store_string(old_save);file.close()
-	else: DirAccess.remove_absolute(path)
-	print("TEST_RESULT assertions=%d failures=%d solver_max_nodes=%d" % [assertions,failures,maximum])
-	quit(1 if failures else 0)
+		file=FileAccess.open("user://filament.json",FileAccess.WRITE);file.store_string(old_save);file.close()
+	else: DirAccess.remove_absolute(ProjectSettings.globalize_path("user://filament.json"))
+	print("FILAMENT_TESTS assertions=",assertions," failures=",failures)
+	quit(0 if failures==0 else 1)

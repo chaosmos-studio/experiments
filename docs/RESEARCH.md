@@ -2,7 +2,7 @@
 
 Research date: 13 October 2026.
 
-This is the original research and Rivet selection record. Rivet is now archived in `experiments/rivet/`. The new block-placement experiment is documented in [DESIGN.md](DESIGN.md).
+This is the original research and Rivet selection record. Rivet is now archived in `experiments/rivet/`. Tessera is also archived in `experiments/tessera/`. The current untangling experiment, Filament, is documented in [DESIGN.md](DESIGN.md). Its selection is a deliberate response to playtest feedback, not a claim that untangling topped the market research.
 
 ## Scope and method
 

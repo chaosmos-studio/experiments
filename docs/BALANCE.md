@@ -1,19 +1,13 @@
-# Difficulty checks
+# Webs
 
-All 18 boards have independently verified winning and losing routes. Pieces and starting boards are fixed, so a restart is the same puzzle.
+Twelve puzzles increase from four knots and one crossing to twelve knots and thirty
+initial tangles. Fixed anchors begin in web five. Ring, wheel, grid and nested-ring
+structures provide different shapes to discover.
 
-Generation screens candidates with separate simulation seeds. The final audit runs 500 attempts for each policy on each board: 18,000 runs total. Random play chooses uniformly among legal piece placements. Greedy play chooses an immediate maximum-line clear, breaking ties randomly. Neither looks ahead or uses undo or hints.
+`tools/generate_levels.py` checks every solution and writes `difficulty-audit.json`.
+Its random-layout samples are an anti-auto-win regression check, not a player skill
+model. Early lessons are intentionally easy. From web six onward, none of 300
+independent random layouts per web solved it in the recorded sample.
 
-| Chapter | Random wins | Greedy wins |
-| --- | ---: | ---: |
-| Learn | 8.5% | 54.1% |
-| Plan | 3.6% | 42.4% |
-| Master | 1.1% | 17.8% |
-
-Later boards are ordered into two bands by the audited greedy win rate. This does not imply a strict human difficulty ranking.
-
-The gap shows that placement decisions matter in these simulations. It does not prove human difficulty or enjoyment. Human play feedback remains the deciding test.
-
-`python3 tools/generate_levels.py` regenerates levels, shapes and the audit deterministically. CI compares all three with git. Godot independently solves every board and checks both recorded routes, simultaneous row/column clears, illegal moves, hand transitions, undo and saved progress. Browser tests use actual drag, mouse, touch and keyboard input, including a loss and recovery.
-
-The archive has its own Godot suite and is browser-tested at `/experiments/rivet/`. Raw results are in [difficulty-audit.json](difficulty-audit.json).
+Difficulty is not strictly increasing. Real playtesting is still needed to judge
+whether the pacing, touch targets, and completion reward are enjoyable.

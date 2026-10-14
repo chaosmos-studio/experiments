@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[1]/'build/web'
-for relative,marker in [('.', 'tessera-version'), ('experiments/rivet', 'rivet-campaign')]:
+for relative,marker in [('.', 'filament-version'), ('experiments/rivet', 'rivet-campaign'), ('experiments/tessera', 'tessera-version')]:
     game=root/relative
     assert marker in (game/'index.html').read_text()
     assert (game/'index.js').is_file() and (game/'index.pck').is_file()
@@ -10,4 +10,4 @@ for relative,marker in [('.', 'tessera-version'), ('experiments/rivet', 'rivet-c
     assert all((game/p).is_file() for p in manifest['parts'])
     assert (game/'wasm-loader.js').is_file()
 assert (root/'experiments/index.html').is_file()
-print('Verified root Tessera and experiments/rivet web paths.')
+print('Verified Filament, Rivet and Tessera web paths.')
