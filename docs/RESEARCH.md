@@ -2,6 +2,8 @@
 
 Research date: 13 October 2026.
 
+This is the original research and Rivet selection record. Rivet is now archived in `experiments/rivet/`. The new block-placement experiment is documented in [DESIGN.md](DESIGN.md).
+
 ## Scope and method
 
 The requested three-year window is 13 October 2023–13 October 2026. Most public market datasets use calendar years or half-years, so this review uses late-2023 context, 2024 and 2025 results, and available 2026 evidence. Full-year 2026 results do not yet exist. Figures that cover all of 2023 are context, not exact measurements of the requested window.
@@ -87,7 +89,7 @@ Pool, in order: Match-3, Merge-2, Block placement, Sorting, Screw puzzles, Daily
 
 Recorded seed: `1067741102`. Python method: `random.Random(seed).sample(pool, 3)`.
 
-Result: **Screw puzzles, Match-3, Sorting**. The complete record is in [selection.json](selection.json). It was a single draw; the categories were not rerolled to fit the implementation. Blast was excluded because chain-clearing would overlap with Carillon's identity, and arrow escape because it directly overlaps with Apsis.
+Result: **Screw puzzles, Match-3, Sorting**. The complete record is in [selection.json](../experiments/rivet/docs/selection.json). It was a single draw; the categories were not rerolled to fit the implementation. Blast was excluded because chain-clearing would overlap with Carillon's identity, and arrow escape because it directly overlaps with Apsis.
 
 The prototype borrows the three-of-a-kind reward from matching. It is not a conventional adjacent-swap Match-3 board, and no claim is made that it inherits Match-3 market size or retention.
 

@@ -1,163 +1,118 @@
 extends RefCounted
-## State = removed screw mask + ordered, unmatched screw IDs in the tray.
-
-const CAPACITY := 7
-var plates: Array = []
-var screws: Array = []
-var plate_masks: Array[int] = []
-var blockers: Array = []
-var all_mask: int = 0
-var visits: int = 0
-var search_limit: int = 150000
+## Finite block placement. All full rows and columns clear simultaneously.
+const N := 6
+var shapes: Array = []
+var pieces: Array = []
+var placements: Array = []
+var goal := 0
+var initial: int = 0
+var visits := 0
 var exhausted := false
+var search_limit := 15000
 var dead: Dictionary = {}
-var pass_limit := 0
 
-func configure(data: Dictionary) -> void:
-	plates = data.plates.duplicate(true)
-	screws = data.screws.duplicate(true)
-	plate_masks.clear()
-	blockers.clear()
-	all_mask = (1 << screws.size()) - 1
-	for _p in plates:
-		plate_masks.append(0)
-	for i in screws.size():
-		plate_masks[int(screws[i].plate)] |= 1 << i
-	for screw in screws:
-		var covers: Array[int] = []
-		var pos := Vector2(float(screw.x), float(screw.y))
-		for p in range(int(screw.plate) + 1, plates.size()):
-			var r: Array = plates[p].rect
-			if Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3])).has_point(pos):
-				covers.append(p)
-		blockers.append(covers)
+func configure(level: Dictionary, shape_data: Array) -> void:
+	shapes = shape_data
+	pieces = level.pieces.duplicate()
+	goal = int(level.goal)
+	initial = int(level.board)
+	placements.clear()
+	for shape in shapes:
+		var options: Array = []
+		for y in N:
+			for x in N:
+				var mask := shape_mask(shape, x, y)
+				if mask != 0:
+					options.append({"x": x, "y": y, "mask": mask})
+		placements.append(options)
 
-func plate_active(plate: int, mask: int) -> bool:
-	return (mask & plate_masks[plate]) != plate_masks[plate]
+func shape_mask(shape: Array, x: int, y: int) -> int:
+	var mask: int = 0
+	for cell in shape:
+		var cx := x + int(cell[0])
+		var cy := y + int(cell[1])
+		if cx < 0 or cy < 0 or cx >= N or cy >= N:
+			return 0
+		mask |= 1 << (cy*N+cx)
+	return mask
 
-func exposed(index: int, mask: int) -> bool:
-	if index < 0 or index >= screws.size() or mask & (1 << index):
-		return false
-	for p in blockers[index]:
-		if plate_active(p, mask):
-			return false
-	return true
-
-func settle(line: Array[int]) -> Dictionary:
-	var result: Array[int] = line.duplicate()
-	var cleared: Array[int] = []
-	var i := 0
-	while i + 2 < result.size():
-		var color := int(screws[result[i]].color)
-		if int(screws[result[i+1]].color) == color and int(screws[result[i+2]].color) == color:
-			for _j in 3:
-				cleared.append(result[i])
-				result.remove_at(i)
-			i = maxi(0, i-2)
-		else:
-			i += 1
-	return {"tray": result, "cleared": cleared, "sets": cleared.size() / 3}
-
-func collect(index: int, mask: int, line: Array[int]) -> Dictionary:
-	if line.size() >= CAPACITY or not exposed(index, mask):
-		return {}
-	var next: Array[int] = line.duplicate()
-	next.append(index)
-	var result := settle(next)
-	result.mask = mask | (1 << index)
-	return result
-
-func put_back(index: int, mask: int, line: Array[int]) -> Dictionary:
-	if index < 0 or index >= screws.size() or not line.has(index) or not (mask & (1 << index)):
-		return {}
-	var next: Array[int] = line.duplicate()
-	next.erase(index)
-	var result := settle(next)
-	result.mask = mask & ~(1 << index)
-	return result
-
-func is_won(mask: int, line: Array[int]) -> bool:
-	return mask == all_mask and line.is_empty()
-
-func solve(mask: int = 0, line: Array[int] = [], limit: int = 60000, allow_returns: bool = true) -> Array[int]:
-	# Positive actions collect a screw; -(id+2) returns it; -1 marks completion.
-	# First seek a forward solution. Then verify single returns and short
-	# front/back return sequences followed by forward play. All hints have a
-	# complete checked continuation; this bounded search is not exhaustive.
-	visits = 0
-	search_limit = limit
-	var cut_short := false
-	var route := _attempt(mask, line)
-	if not route.is_empty() or not allow_returns:
-		return route
-	cut_short = exhausted
-	for index in line:
-		var next := put_back(index, mask, line)
-		route = _attempt(int(next.mask), next.tray)
-		cut_short = cut_short or exhausted
-		if not route.is_empty():
-			route.push_front(-index-2)
-			return route
-		if visits >= search_limit:
-			exhausted = true
-			return []
-	for reverse_order in [true, false]:
-		var current_mask := mask
-		var current: Array[int] = line.duplicate()
-		var order: Array[int] = line.duplicate()
-		if reverse_order:
-			order.reverse()
-		var prefix: Array[int] = []
-		for index in order:
-			if not current.has(index):
-				continue
-			var next := put_back(index, current_mask, current)
-			current_mask = int(next.mask)
-			current.assign(next.tray)
-			prefix.append(-index-2)
-			route = _attempt(current_mask, current)
-			cut_short = cut_short or exhausted
-			if not route.is_empty():
-				prefix.append_array(route)
-				return prefix
-			if visits >= search_limit:
-				exhausted = true
-				return []
-	exhausted = cut_short
+func available(used: int) -> Array[int]:
+	for start in range(0, pieces.size(), 3):
+		var group: Array[int] = []
+		for i in range(start, mini(start+3, pieces.size())):
+			if not (used & (1 << i)):
+				group.append(i)
+		if not group.is_empty():
+			return group
 	return []
 
-func _attempt(mask: int, line: Array[int]) -> Array[int]:
-	dead.clear()
-	exhausted = false
-	pass_limit = mini(search_limit, visits + 5000)
-	return _search(mask, line)
+func settle(board: int) -> Dictionary:
+	var clear: int = 0
+	var lines := 0
+	for axis in 2:
+		for k in N:
+			var mask: int = 0
+			for j in N:
+				mask |= 1 << (k*N+j if axis == 0 else j*N+k)
+			if board & mask == mask:
+				clear |= mask
+				lines += 1
+	return {"board": board & ~clear, "cleared": clear, "lines": lines}
 
-func _search(mask: int, line: Array[int]) -> Array[int]:
-	if is_won(mask, line):
-		return [-1]
-	if line.size() >= CAPACITY:
-		return []
-	if visits >= pass_limit:
+func place(board: int, used: int, lines: int, piece: int, x: int, y: int) -> Dictionary:
+	if not available(used).has(piece):
+		return {}
+	var mask := shape_mask(shapes[int(pieces[piece])], x, y)
+	if mask == 0 or board & mask:
+		return {}
+	var next := settle(board | mask)
+	next.used = used | (1 << piece)
+	next.total = lines + int(next.lines)
+	next.added = mask
+	return next
+
+func moves(board: int, used: int) -> Array:
+	var options: Array = []
+	for piece in available(used):
+		for p in placements[int(pieces[piece])]:
+			if not (board & int(p.mask)):
+				var next := settle(board | int(p.mask))
+				options.append({"piece": piece, "x": int(p.x), "y": int(p.y),
+					"board": int(next.board), "lines": int(next.lines)})
+	return options
+
+func status(board: int, used: int, lines: int) -> String:
+	if lines >= goal:
+		return "won"
+	return "lost" if moves(board, used).is_empty() else "play"
+
+func solve(board: int, used: int = 0, lines: int = 0, limit: int = 15000) -> Array:
+	visits = 0
+	exhausted = false
+	search_limit = limit
+	dead.clear()
+	return _search(board, used, lines)
+
+func _search(board: int, used: int, lines: int) -> Array:
+	if lines >= goal:
+		return [Vector3i(-1, -1, -1)]
+	if visits >= search_limit:
 		exhausted = true
 		return []
-	var key := str(mask) + ":" + str(line)
+	var key := str(board) + ":" + str(used) + ":" + str(lines)
 	if dead.has(key):
 		return []
 	visits += 1
-	var tail := -1 if line.is_empty() else int(screws[line.back()].color)
-	var choices: Array[int] = []
-	for i in screws.size():
-		if exposed(i, mask):
-			choices.append(i)
-	choices.sort_custom(func(a: int, b: int):
-		var a_matches := int(screws[a].color) == tail
-		var b_matches := int(screws[b].color) == tail
-		return a < b if a_matches == b_matches else a_matches)
-	for index in choices:
-		var next := collect(index, mask, line)
-		var route := _search(int(next.mask), next.tray)
+	var options := moves(board, used)
+	options.sort_custom(func(a: Dictionary, b: Dictionary):
+		if a.lines != b.lines: return a.lines > b.lines
+		if a.piece != b.piece: return a.piece < b.piece
+		if a.y != b.y: return a.y < b.y
+		return a.x < b.x)
+	for p in options:
+		var route := _search(int(p.board), used | (1 << int(p.piece)), lines+int(p.lines))
 		if not route.is_empty():
-			route.push_front(index)
+			route.push_front(Vector3i(p.piece, p.x, p.y))
 			return route
 		if exhausted:
 			return []

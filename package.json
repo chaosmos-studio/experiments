@@ -1,5 +1,5 @@
 {
-  "name": "rivet-browser-tests",
+  "name": "puzzle-experiments-tests",
   "private": true,
   "scripts": {"test:web": "playwright test"},
   "devDependencies": {"@playwright/test": "1.56.1"}

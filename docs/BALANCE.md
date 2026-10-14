@@ -1,26 +1,19 @@
-# Ordered matching revision
+# Difficulty checks
 
-Version 3 preserves removal order and allows unmatched screws to return to their original panels. Three matching neighbours clear; separated pieces do not. All 36 studies were rebuilt for this rule.
+All 18 boards have independently verified winning and losing routes. Pieces and starting boards are fixed, so a restart is the same puzzle.
 
-## Collection-only audit
+Generation screens candidates with separate simulation seeds. The final audit runs 500 attempts for each policy on each board: 18,000 runs total. Random play chooses uniformly among legal piece placements. Greedy play chooses an immediate maximum-line clear, breaking ties randomly. Neither looks ahead or uses undo or hints.
 
-Each rate is the chapter mean of 1,000 attempts per study and policy. Random play chooses uniformly among exposed screws. Greedy play prefers the colour at the right end of the tray, breaking ties randomly. Both stop at a full tray. Neither uses returns, inspection, hints, undo, or lookahead. Separate seeds screen generation and audit the finished campaign.
-
-| Studies | Random wins | Greedy wins |
+| Chapter | Random wins | Greedy wins |
 | --- | ---: | ---: |
-| 1–3 | 1.87% | 82.3% |
-| 4–12 | 0.01% | 64.6% |
-| 13–24 | 0.00% | 38.2% |
-| 25–36 | 0.00% | 17.1% |
+| Learn | 8.5% | 54.1% |
+| Plan | 3.6% | 42.4% |
+| Master | 1.1% | 17.8% |
 
-Returns are deliberately excluded from this audit to measure the importance of collection order. A full tray is recoverable during actual play, so these figures are not player failure rates and are not directly comparable to the earlier auto-sorting campaign. A measured 0% means no wins in this sample, not impossibility.
+Later boards are ordered into two bands by the audited greedy win rate. This does not imply a strict human difficulty ranking.
 
-All 36 studies have a verified winning route and a legal route to a full tray. Every occupied slot can be returned from that full state. The longest independent Python solution search visits 2860 states.
+The gap shows that placement decisions matter in these simulations. It does not prove human difficulty or enjoyment. Human play feedback remains the deciding test.
 
-## Regression checks
+`python3 tools/generate_levels.py` regenerates levels, shapes and the audit deterministically. CI compares all three with git. Godot independently solves every board and checks both recorded routes, simultaneous row/column clears, illegal moves, hand transitions, undo and saved progress. Browser tests use actual drag, mouse, touch and keyboard input, including a loss and recovery.
 
-`python3 tools/audit_levels.py --check` evaluates 72,000 attempts and enforces chapter-specific upper bounds. CI regenerates the campaign and compares both generated levels and audit results with git.
-
-Godot tests verify every winning and full-tray route, separate versus adjacent matches, cascades, panel revival, return-aware hints, exact undo, save migration, and scene completion. Desktop and phone browser tests perform a gap-closing return through actual input, undo it, recover from a full tray, and complete a clean solve using a return. Screenshots include ordered and full trays, help, and the final study.
-
-These checks prevent trivial collection order and rule regressions. They do not measure human difficulty, enjoyment, or retention. Raw results are in [difficulty-audit.json](difficulty-audit.json).
+The archive has its own Godot suite and is browser-tested at `/experiments/rivet/`. Raw results are in [difficulty-audit.json](difficulty-audit.json).

@@ -1,36 +1,36 @@
-# Rivet
+# Tessera
 
-A quiet sorting puzzle made in Godot. Keep screws in removal order, match three neighbours, and return pieces to their panels.
+A block-placement puzzle made in Godot. Clear the target number of rows and columns with a fixed set of pieces.
 
-[Play Rivet](https://shravangoswami.com/game-experiment/)
+[Play Tessera](https://shravangoswami.com/game-experiment/) · [Play Rivet](https://shravangoswami.com/game-experiment/experiments/rivet/)
 
-- 36 verified solvable levels
-- Inspect hidden colours, undo, hints, and saved completion
-- Four difficulty chapters and unaided solve marks
-- Mouse, touch, and keyboard controls
-- Optional sound and reduced motion
+- 18 verified solvable boards with real losing routes
+- Three pieces at a time; upcoming sets are visible
+- Drag a piece, or select it and tap its top-left cell
+- Undo, verified hints, saved progress, sound and reduced motion
+
+Keyboard: 1–3 choose, arrows move, Enter places, U undo, H hint, R restart.
 
 ## Run
 
-Open `project.godot` in Godot 4.5.2 and press F6 on `scenes/main.tscn`, or press F5.
+Open `project.godot` in Godot 4.5.2, or run:
 
 ```sh
 godot --path .
 godot --headless --path . --script res://tests/run_tests.gd
 ```
 
-## Controls
+Rivet is a separate project in `experiments/rivet/`:
 
-Tap an exposed screw to add it to the right end of the tray. Three adjacent screws with the same colour or symbol clear. Tap any unmatched tray screw to return it to its original panel; closing the gap can create a match. A full tray blocks collection until you return a screw. Clear both the panels and tray to win.
-
-Keyboard: arrows select, Enter collects, 1–7 return tray slots, U undoes, H hints, R restarts, M toggles sound, I inspects the layers.
+```sh
+godot --path experiments/rivet
+```
 
 ## Notes
 
-- [Research](docs/RESEARCH.md)
-- [Game design](docs/DESIGN.md)
+- [Design and research decision](docs/DESIGN.md)
+- [Original market research](docs/RESEARCH.md)
 - [Difficulty checks](docs/BALANCE.md)
 - [Web publishing](docs/DEPLOYMENT.md)
-- [Build workflow](https://github.com/shravanngoswamii/game-experiment/actions/workflows/web.yml)
 
-CI tests and exports each push to `main`, then publishes to GitHub Pages.
+Every successful push to `main` tests and publishes both games at their matching paths.

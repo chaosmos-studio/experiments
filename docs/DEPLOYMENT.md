@@ -1,47 +1,27 @@
 # Web publishing
 
-[Play Rivet](https://shravangoswami.com/game-experiment/). GitHub Pages is enabled. Each successful push to `main` updates this address. The earlier private Sites preview is an archived first version and does not track new commits.
+GitHub Pages serves two standalone Godot exports:
 
-Every push to `main` runs `.github/workflows/web.yml`:
+| Source | Web path |
+| --- | --- |
+| Repository root, Tessera | [game-experiment/](https://shravangoswami.com/game-experiment/) |
+| `experiments/rivet/` | [game-experiment/experiments/rivet/](https://shravangoswami.com/game-experiment/experiments/rivet/) |
 
-1. Download pinned Godot 4.5.2 and verify both archives with SHA-256.
-2. Import the project, regenerate levels, audit difficulty, and run rule and scene tests.
-3. Export the single-threaded WebGL 2 build.
-4. Run Chromium checks at desktop and phone sizes, including ordered matching, screw returns, full-tray recovery, and touch input.
-5. Upload the web build and test screenshots as Actions artifacts.
-6. Publish the tested build to GitHub Pages.
+The previous game is archived as source and remains playable. Its assets, rules, campaign and saves use its own Godot project. Each successful push to `main` rebuilds and tests both games before publishing one Pages artifact. Pages source remains GitHub Actions.
 
-## One-time Pages setting
+CI installs pinned Godot 4.5.2 and checks archive hashes, imports both projects, runs both native test suites, regenerates Tessera's levels, exports both builds, validates nested asset paths, and runs desktop and mobile browser tests. Screenshots and the combined web build are uploaded as Actions artifacts.
 
-In the repository, open **Settings > Pages > Build and deployment > Source**, and select **GitHub Actions**. Rerun the workflow if the first deployment ran before this setting was enabled.
+## Local build
 
-The repository is private. GitHub Pages on private repositories requires an eligible GitHub plan. The workflow does not change repository visibility. If the plan does not include private-repository Pages, the downloadable artifact still builds; use another static host for publishing.
-
-The GitHub Pages address redirects to the account’s custom domain, `https://shravangoswami.com/game-experiment/`.
-
-## Local preview
-
-Install Godot 4.5.2 and its export templates, then run:
+Install Godot 4.5.2 and its web export templates, then:
 
 ```sh
 godot --headless --editor --path . --import --quit
-godot --headless --path . --script res://tests/run_tests.gd
-mkdir -p build/web
-godot --headless --path . --export-release Web build/web/index.html
-python3 tools/prepare_web.py
+godot --headless --editor --path experiments/rivet --import --quit
+bash tools/build_web.sh
 python3 -m http.server 8000 --directory build/web
 ```
 
-Open `http://localhost:8000`. Opening `index.html` directly as a file will not work.
+Open `http://localhost:8000/` or `http://localhost:8000/experiments/rivet/`. To run browser tests: `npm ci`, `npx playwright install chromium`, and `npm run test:web`.
 
-For browser checks, run `npm ci`, `npx playwright install chromium`, then `npm run test:web`. The test runner starts its own local server.
-
-## Hosting details
-
-The game uses GDScript and Godot's Compatibility renderer. Thread and extension support are disabled, so COOP/COEP headers and SharedArrayBuffer are unnecessary. HTTPS and WebGL 2/WebAssembly support are required for the deployed preview.
-
-`prepare_web.py` divides the 38MB engine into ten files of at most 4MiB. The loader streams their bytes back into one WebAssembly response. This supports static hosts with per-file limits without changing the engine. The generated `build-info.json` records the complete engine hash. First load is still substantial; an optimized custom Godot template is a future performance improvement.
-
-The browser stores completed studies and preferences locally. Browser storage restrictions can prevent persistence. No personal data is sent to a game server.
-
-Sources: [Godot Web export](https://docs.godotengine.org/en/4.5/tutorials/export/exporting_for_web.html), [GitHub Pages workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+Both exports use WebGL 2 and single-threaded WebAssembly, with no cross-origin isolation header requirement. Each engine is split into verified relative-path chunks. No accounts or server-side player data are used. Browser restrictions may prevent local progress saving.

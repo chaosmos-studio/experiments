@@ -1,365 +1,316 @@
 extends Control
 
 const Rules = preload("res://scripts/puzzle.gd")
-const INK := Color("283f3b")
-const MUTED := Color("7c8478")
-const PAPER := Color("f3f0e6")
-const COLORS := [Color("d97b5c"), Color("559f92"), Color("d6ad50"), Color("8982b1"), Color("6994bb"), Color("c57894")]
-const PLATE_COLORS := [Color("e5d5bb"), Color("bacdc2"), Color("d7c8bc"), Color("c7cfd8"), Color("d9d1b3")]
-const BOARD := Vector2(74, 266)
-const SAVE_PATH := "user://rivet.json"
-const CAMPAIGN_VERSION := 3
+const BG := Color("101725")
+const PANEL := Color("192437")
+const EMPTY := Color("222f43")
+const TEXT := Color("f3efdf")
+const MUTED := Color("8c9aae")
+const MINT := Color("8ce5c5")
+const CORAL := Color("eea579")
+const GOLD := Color("ecd18a")
+const COLORS := [MINT, CORAL, Color("a7b9f6")]
+const BOARD := Vector2(102, 210)
+const CELL := 86.0
+const SAVE := "user://tessera.json"
 
+var rules := Rules.new()
+var levels: Array = []
+var shapes: Array = []
+var level_index := 0
+var board: int = 0
+var used := 0
+var lines := 0
+var selected := -1
+var cursor := Vector2i(-1, -1)
+var history: Array = []
+var ink: Array[int] = []
+var completed: Dictionary = {}
+var clean: Dictionary = {}
+var undos := 0
+var hints := 0
+var screen := "play"
+var previous_screen := "play"
 var font: Font
 var bold: FontVariation
-var rules = Rules.new()
-var levels: Array = []
-var level_index := 0
-var removed: int = 0
-var tray: Array[int] = []
-var history: Array = []
-var completed: Dictionary = {}
-var unaided: Dictionary = {}
-var legacy_completion: Dictionary = {}
-var campaign_updated := false
-var undos_used := 0
-var hints_used := 0
-var returns_used := 0
-var state_revision := 0
-var hint_return_id := -1
 var buttons: Array = []
-var screen := "play"
-var hover := Vector2(-100, -100)
-var hint_index := -1
-var keyboard_index := -1
-var message := ""
+var hover := Vector2(-1,-1)
+var press_origin := Vector2.ZERO
+var piece_pressed := false
+var dragging := false
+var keyboard_cursor := false
+var message := "Pick a piece. Then tap its top-left cell."
 var message_time := 0.0
+var flashes: Array = []
 var clock := 0.0
-var sound_on := true
+var sound := true
 var reduced_motion := false
-var animating := 0.0
-var flights: Array = []
-var bursts: Array = []
-var fading: Dictionary = {}
-var matched := 0
-var peak := 0
-var audio: AudioStreamPlayer
-var sound_pick = preload("res://assets/pick.wav")
-var sound_match = preload("res://assets/match.wav")
-var sound_win = preload("res://assets/win.wav")
+var player: AudioStreamPlayer
+var tones: Array[AudioStreamWAV] = []
 var last_web_state := ""
 
 func _ready() -> void:
 	font = ThemeDB.fallback_font
 	bold = FontVariation.new()
 	bold.base_font = font
-	bold.variation_embolden = 0.7
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://data/levels.json"))
-	if not parsed is Array or parsed.is_empty():
-		push_error("No puzzle levels could be loaded.")
-		return
-	levels = parsed
-	audio = AudioStreamPlayer.new()
-	add_child(audio)
+	bold.variation_embolden = 0.6
+	levels = JSON.parse_string(FileAccess.get_file_as_string("res://data/levels.json"))
+	shapes = JSON.parse_string(FileAccess.get_file_as_string("res://data/shapes.json"))
+	player = AudioStreamPlayer.new()
+	add_child(player)
+	for hz in [280.0, 560.0, 840.0]:
+		tones.append(_make_tone(hz))
 	_load_save()
 	_load_level(level_index)
-	if campaign_updated:
-		_toast("New rules: match three neighbours. Tap tray to return.")
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.rivetReady = true;")
-	print("RIVET_READY levels=", levels.size())
+		JavaScriptBridge.eval("window.tesseraReady=true;")
+	print("TESSERA_READY levels=", levels.size())
 
-func _layout_scale() -> float:
-	return minf(size.x / 720.0, size.y / 1000.0)
+func _make_tone(hz: float) -> AudioStreamWAV:
+	var data := PackedByteArray()
+	var count := 3300
+	data.resize(count*2)
+	for i in count:
+		var t := float(i)/22050.0
+		var envelope := sin(PI*float(i)/count)*exp(-t*24.0)
+		var value := int(sin(TAU*hz*t)*envelope*3500.0)
+		data.encode_s16(i*2, value)
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = 22050
+	stream.data = data
+	return stream
 
-func _origin() -> Vector2:
-	return (size - Vector2(720, 1000) * _layout_scale()) * 0.5
-
-func _process(delta: float) -> void:
-	clock += delta
-	animating = maxf(0.0, animating - delta)
-	message_time = maxf(0.0, message_time - delta)
-	for f in flights:
-		f.t += delta
-	flights = flights.filter(func(f): return f.t < 0.35)
-	for b in bursts:
-		b.t += delta
-	bursts = bursts.filter(func(b): return b.t < 0.6)
-	for p in fading.keys():
-		fading[p] -= delta
-		if fading[p] <= 0:
-			fading.erase(p)
-	_sync_web_state()
-	queue_redraw()
-
-func _sync_web_state() -> void:
-	if not OS.has_feature("web"):
-		return
-	var state := JSON.stringify({"level": level_index + 1, "screen": screen,
-		"tray": tray.size(), "sets": matched, "removed": str(removed),
-		"campaign": CAMPAIGN_VERSION, "undos": undos_used, "hints": hints_used,
-		"returns": returns_used, "order": ",".join(PackedStringArray(tray.map(func(i): return str(i)))),
-		"hint_return": hint_return_id})
-	if state == last_web_state:
-		return
-	last_web_state = state
-	JavaScriptBridge.eval("(() => {const s=" + state + ";const e=document.getElementById('game-state');if(e){for(const k in s)e.dataset[k]=s[k];e.textContent='Study '+s.level+'. '+s.tray+' of 7 tray spaces used. '+s.sets+' sets collected. '+s.screen;}})();")
+func _tone(index: int) -> void:
+	if sound:
+		player.stream = tones[index]
+		player.play()
 
 func _load_save() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var saved = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
-	if not saved is Dictionary:
-		return
-	level_index = clampi(int(saved.get("level", 0)), 0, levels.size() - 1)
-	if saved.get("completed", {}) is Dictionary:
-		completed = saved.get("completed", {})
-	if saved.get("unaided", {}) is Dictionary:
-		unaided = saved.get("unaided", {})
-	if saved.get("legacy_completion", {}) is Dictionary:
-		legacy_completion = saved.get("legacy_completion", {})
-	if int(saved.get("campaign_version", 1)) != CAMPAIGN_VERSION:
-		legacy_completion[str(int(saved.get("campaign_version", 1)))] = completed.duplicate(true)
-		completed.clear()
-		unaided.clear()
-		level_index = 0
-		campaign_updated = true
-	sound_on = bool(saved.get("sound", true))
-	reduced_motion = bool(saved.get("reduced_motion", false))
+	if not FileAccess.file_exists(SAVE): return
+	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+	if not data is Dictionary: return
+	level_index = clampi(int(data.get("level", 0)), 0, levels.size()-1)
+	if data.get("completed", {}) is Dictionary: completed = data.get("completed", {})
+	if data.get("clean", {}) is Dictionary: clean = data.get("clean", {})
+	sound = bool(data.get("sound", true))
+	reduced_motion = bool(data.get("reduced_motion", false))
 
 func _save() -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(SAVE, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify({"level": level_index, "completed": completed,
-			"campaign_version": CAMPAIGN_VERSION, "unaided": unaided,
-			"legacy_completion": legacy_completion,
-			"sound": sound_on, "reduced_motion": reduced_motion}))
+		file.store_string(JSON.stringify({"level":level_index,"completed":completed,
+			"clean":clean,"sound":sound,"reduced_motion":reduced_motion}))
 
 func _load_level(index: int) -> void:
-	state_revision += 1
-	level_index = clampi(index, 0, levels.size() - 1)
-	rules.configure(levels[level_index])
-	removed = 0
-	tray.clear()
+	level_index = clampi(index, 0, levels.size()-1)
+	rules.configure(levels[level_index], shapes)
+	board = rules.initial
+	used = 0
+	lines = 0
+	selected = -1
+	cursor = Vector2i(-1,-1)
+	ink.assign([])
+	for _i in 36: ink.append(-1)
 	history.clear()
-	flights.clear()
-	bursts.clear()
-	fading.clear()
-	hint_index = -1
-	keyboard_index = -1
-	matched = 0
-	peak = 0
-	undos_used = 0
-	hints_used = 0
-	returns_used = 0
-	hint_return_id = -1
-	animating = 0
+	flashes.clear()
+	undos = 0
+	hints = 0
+	piece_pressed = false
+	dragging = false
 	screen = "play"
+	message = "Pick a piece. Then tap its top-left cell."
+	message_time = 0
 	_save()
 
-func _play(stream: AudioStream) -> void:
-	if sound_on:
-		audio.stream = stream
-		audio.play()
+func _scale() -> float:
+	return minf(size.x/720.0, size.y/1000.0)
 
-func _remember() -> void:
-	history.append({"mask": removed, "tray": tray.duplicate(), "matched": matched, "peak": peak})
+func _origin() -> Vector2:
+	return (size-Vector2(720,1000)*_scale())*0.5
 
-func _take(index: int) -> void:
-	# Visual animations never block a legal action.
-	if screen != "play":
-		return
-	var next: Dictionary = rules.collect(index, removed, tray)
+func _cell(point: Vector2) -> Vector2i:
+	return Vector2i(floori((point.x-BOARD.x)/CELL), floori((point.y-BOARD.y)/CELL))
+
+func _inside(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < 6 and cell.y < 6
+
+func _select(index: int) -> void:
+	if screen != "play" or not rules.available(used).has(index): return
+	selected = index
+	if keyboard_cursor:
+		for option in rules.moves(board, used):
+			if int(option.piece) == index:
+				cursor = Vector2i(option.x, option.y)
+				break
+
+func _place(index: int, x: int, y: int) -> void:
+	if screen != "play": return
+	var next := rules.place(board, used, lines, index, x, y)
 	if next.is_empty():
+		_toast("That piece does not fit. Try another space.")
 		return
-	_remember()
-	var line: Array[int] = tray.duplicate()
-	line.append(index)
-	flights.append({"from": BOARD + Vector2(rules.screws[index].x, rules.screws[index].y),
-		"to": Vector2(108 + tray.size() * 84, 818), "color": int(rules.screws[index].color), "t": 0.0})
-	_apply_move(next, line)
-
-func _return_screw(index: int) -> void:
-	if screen not in ["play", "full"]:
-		return
-	var next: Dictionary = rules.put_back(index, removed, tray)
-	if next.is_empty():
-		return
-	_remember()
-	var slot := tray.find(index)
-	var line: Array[int] = tray.duplicate()
-	line.erase(index)
-	flights.append({"from": Vector2(108 + slot * 84, 818),
-		"to": BOARD + Vector2(rules.screws[index].x, rules.screws[index].y),
-		"color": int(rules.screws[index].color), "t": 0.0})
-	returns_used += 1
-	_apply_move(next, line)
-	_toast("Returned to panel %d." % (int(rules.screws[index].plate) + 1))
-
-func _apply_move(next: Dictionary, visual_line: Array[int]) -> void:
-	state_revision += 1
-	var before := removed
-	removed = int(next.mask)
-	tray.assign(next.tray)
-	matched += int(next.sets)
-	hint_index = -1
-	hint_return_id = -1
-	keyboard_index = -1
-	for index in next.cleared:
-		bursts.append({"pos": Vector2(108 + visual_line.find(index) * 84, 818),
-			"color": int(rules.screws[index].color), "t": -0.18})
-	_play(sound_match if int(next.sets) > 0 else sound_pick)
-	peak = maxi(peak, tray.size())
-	for panel in rules.plates.size():
-		if rules.plate_active(panel, before) and not rules.plate_active(panel, removed):
-			fading[panel] = 0.32
-		elif rules.plate_active(panel, removed):
-			fading.erase(panel)
-	animating = 0.05 if reduced_motion else 0.3
-	screen = _play_screen()
-	if rules.is_won(removed, tray):
+	history.append({"board":board,"used":used,"lines":lines,"ink":ink.duplicate()})
+	for i in 36:
+		if int(next.added) & (1<<i): ink[i] = index%3
+		if int(next.cleared) & (1<<i):
+			flashes.append({"cell":i,"color":ink[i],"t":0.0})
+			ink[i] = -1
+	board = int(next.board)
+	used = int(next.used)
+	lines = int(next.total)
+	selected = -1
+	cursor = Vector2i(-1,-1)
+	dragging = false
+	piece_pressed = false
+	if int(next.lines) > 0:
+		_toast("Cross clear. +%d lines" % int(next.lines) if int(next.lines)>1 else "One line. More room.")
+		_tone(1)
+	else:
+		_toast("Leave room for the next piece.")
+		_tone(0)
+	screen = rules.status(board, used, lines)
+	if screen == "won":
 		completed[str(level_index)] = true
-		if undos_used == 0 and hints_used == 0:
-			unaided[str(level_index)] = true
+		if undos == 0 and hints == 0: clean[str(level_index)] = true
 		_save()
-		_finish_after_animation()
-	elif screen == "full":
-		_toast("Tray full. Tap a tray screw to put it back.")
-
-func _play_screen() -> String:
-	return "full" if tray.size() >= Rules.CAPACITY else "play"
-
-func _finish_after_animation() -> void:
-	var expected_revision := state_revision
-	await get_tree().create_timer(0.42).timeout
-	if state_revision == expected_revision and rules.is_won(removed, tray):
-		screen = "won"
-		_play(sound_win)
+		_tone(2)
 
 func _undo() -> void:
 	if history.is_empty():
 		_toast("No moves to undo.")
 		return
-	state_revision += 1
 	var state: Dictionary = history.pop_back()
-	undos_used += 1
-	removed = state.mask
-	tray.assign(state.tray)
-	matched = state.matched
-	peak = state.peak
-	flights.clear()
-	bursts.clear()
-	fading.clear()
-	hint_index = -1
-	hint_return_id = -1
-	animating = 0
-	screen = _play_screen()
+	board = state.board
+	used = state.used
+	lines = state.lines
+	ink.assign(state.ink)
+	undos += 1
+	selected = -1
+	cursor = Vector2i(-1,-1)
+	flashes.clear()
+	screen = "play"
+	_toast("One step back.")
 
 func _hint() -> void:
-	if screen not in ["play", "full"]:
+	if screen != "play": return
+	var route := rules.solve(board, used, lines, 12000)
+	if route.is_empty():
+		_toast("No quick route found. Try undoing a move.")
 		return
-	var route: Array[int] = rules.solve(removed, tray, 30000)
-	if not route.is_empty() and route[0] != -1:
-		hints_used += 1
-		hint_index = route[0] if route[0] >= 0 else -1
-		hint_return_id = -route[0]-2 if route[0] < -1 else -1
-		_toast("Return the highlighted tray screw." if hint_return_id >= 0 else "Take the highlighted screw.")
-	else:
-		_toast("No quick route found. Try returning a screw or undoing.")
+	var action: Vector3i = route[0]
+	if action.x < 0: return
+	selected = action.x
+	cursor = Vector2i(action.y, action.z)
+	keyboard_cursor = true
+	hints += 1
+	_toast("Place this piece in the outlined space.")
 
 func _toast(text: String) -> void:
 	message = text
-	message_time = 3.8
+	message_time = 3.0
 
 func _action(action: String) -> void:
 	match action:
-		"levels": screen = "levels"
-		"help": screen = "help"
-		"inspect": screen = "inspect"
-		"close": screen = _play_screen()
+		"undo": _undo()
+		"hint": _hint()
+		"restart": _load_level(level_index)
+		"next": _load_level(level_index+1) if level_index+1 < levels.size() else _open("levels")
+		"levels", "help", "queue": _open(action)
+		"close": screen = previous_screen
 		"sound":
-			sound_on = not sound_on
+			sound = not sound
 			_save()
 		"motion":
 			reduced_motion = not reduced_motion
 			_save()
-		"undo": _undo()
-		"hint": _hint()
-		"restart": _load_level(level_index)
-		"next":
-			if level_index + 1 < levels.size():
-				_load_level(level_index + 1)
-			else:
-				screen = "levels"
 		_:
-			if action.begins_with("level:"):
-				_load_level(int(action.get_slice(":", 1)))
+			if action.begins_with("level:"): _load_level(int(action.get_slice(":",1)))
+
+func _open(name: String) -> void:
+	previous_screen = screen
+	screen = name
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		hover = (event.position - _origin()) / _layout_scale()
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var point: Vector2 = (event.position - _origin()) / _layout_scale()
-		for b in buttons:
-			if b.rect.has_point(point):
-				_action(b.action)
+		hover = (event.position-_origin())/_scale()
+		keyboard_cursor = false
+		if selected >= 0 and screen == "play": cursor = _cell(hover)
+		if piece_pressed and hover.distance_to(press_origin)>10:
+			dragging = true
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var point: Vector2 = (event.position-_origin())/_scale()
+		if not event.pressed:
+			if dragging and selected >= 0 and _inside(_cell(point)):
+				var cell := _cell(point)
+				_place(selected, cell.x, cell.y)
+			piece_pressed = false
+			dragging = false
+			return
+		for button in buttons:
+			if button.rect.has_point(point):
+				_action(button.action)
 				accept_event()
 				return
-		if screen in ["play", "full"]:
-			for slot in tray.size():
-				if point.distance_to(Vector2(108 + slot * 84, 818)) < 35:
-					_return_screw(tray[slot])
+		if screen != "play": return
+		var group := rules.available(used)
+		if not group.is_empty():
+			var start: int = (group[0]/3)*3
+			for slot in 3:
+				if Rect2(48+slot*212, 779, 200, 116).has_point(point):
+					_select(start+slot)
+					piece_pressed = selected == start+slot
+					press_origin = point
 					accept_event()
 					return
-		if screen != "play":
-			return
-		# Hit test the top visible screw, with a larger touch target than its head.
-		for i in range(rules.screws.size() - 1, -1, -1):
-			var s: Dictionary = rules.screws[i]
-			if point.distance_to(BOARD + Vector2(s.x, s.y)) < 35 and rules.exposed(i, removed):
-				_take(i)
-				accept_event()
-				return
+		var cell := _cell(point)
+		if selected >= 0 and _inside(cell):
+			_place(selected, cell.x, cell.y)
+			accept_event()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not event is InputEventKey or not event.pressed or event.echo:
-		return
-	if event.keycode >= KEY_1 and event.keycode <= KEY_7 and screen in ["play", "full"]:
-		var slot: int = event.keycode - KEY_1
-		if slot < tray.size():
-			_return_screw(tray[slot])
-		get_viewport().set_input_as_handled()
-		return
+	if not event is InputEventKey or not event.pressed or event.echo: return
+	keyboard_cursor = true
 	match event.keycode:
-		KEY_ESCAPE:
-			if screen in ["help", "levels", "inspect"]:
-				screen = _play_screen()
-		KEY_U, KEY_Z:
-			if screen in ["play", "full"]:
-				_undo()
-		KEY_R: _load_level(level_index)
+		KEY_1, KEY_2, KEY_3:
+			var group := rules.available(used)
+			if not group.is_empty(): _select((group[0]/3)*3+event.keycode-KEY_1)
+		KEY_U, KEY_Z: _undo()
 		KEY_H: _hint()
-		KEY_I:
-			if screen in ["play", "full", "inspect"]:
-				screen = _play_screen() if screen == "inspect" else "inspect"
-		KEY_M: _action("sound")
+		KEY_R: _load_level(level_index)
+		KEY_ESCAPE:
+			if screen in ["help","levels","queue"]: screen = previous_screen
+			else: selected = -1
 		KEY_ENTER, KEY_SPACE:
-			if screen == "won":
-				_action("next")
-			elif keyboard_index >= 0:
-				_take(keyboard_index)
-		KEY_TAB, KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP:
-			if screen == "play":
-				var options: Array[int] = []
-				for i in rules.screws.size():
-					if rules.exposed(i, removed):
-						options.append(i)
-				if not options.is_empty():
-					var direction := -1 if event.keycode in [KEY_LEFT, KEY_UP] or event.shift_pressed else 1
-					keyboard_index = options[posmod(options.find(keyboard_index) + direction, options.size())]
+			if screen == "won": _action("next")
+			elif selected >= 0 and screen == "play": _place(selected,cursor.x,cursor.y)
+		KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN:
+			if selected >= 0 and screen == "play":
+				if not _inside(cursor): cursor = Vector2i.ZERO
+				if event.keycode == KEY_LEFT: cursor.x = maxi(0,cursor.x-1)
+				if event.keycode == KEY_RIGHT: cursor.x = mini(5,cursor.x+1)
+				if event.keycode == KEY_UP: cursor.y = maxi(0,cursor.y-1)
+				if event.keycode == KEY_DOWN: cursor.y = mini(5,cursor.y+1)
 	get_viewport().set_input_as_handled()
 
-func _box(rect: Rect2, color: Color, radius: int = 16, border: Color = Color.TRANSPARENT, width: int = 1) -> void:
+func _process(delta: float) -> void:
+	clock += delta
+	message_time = maxf(0,message_time-delta)
+	for flash in flashes: flash.t += delta
+	flashes = flashes.filter(func(f): return f.t < 0.45)
+	_sync_web()
+	queue_redraw()
+
+func _sync_web() -> void:
+	if not OS.has_feature("web"): return
+	var data := JSON.stringify({"game":"tessera","level":level_index+1,"board":str(board),
+		"used":used,"lines":lines,"goal":rules.goal,"screen":screen,"selected":selected,
+		"undos":undos,"hints":hints})
+	if data == last_web_state: return
+	last_web_state = data
+	JavaScriptBridge.eval("(()=>{const s="+data+";const e=document.getElementById('game-state');if(e){for(const k in s)e.dataset[k]=s[k];e.textContent='Tessera. Board '+s.level+'. '+s.lines+' of '+s.goal+' lines. '+s.screen;}})();")
+
+func _box(rect: Rect2, color: Color, radius: int = 14, border: Color = Color.TRANSPARENT, width: int = 1) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.corner_radius_top_left = radius
@@ -368,230 +319,159 @@ func _box(rect: Rect2, color: Color, radius: int = 16, border: Color = Color.TRA
 	style.corner_radius_bottom_right = radius
 	style.border_color = border
 	style.set_border_width_all(width)
-	draw_style_box(style, rect)
+	draw_style_box(style,rect)
 
-func _text(text: String, pos: Vector2, size_px: int, color: Color = INK, strong: bool = false) -> void:
-	draw_string(bold if strong else font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, color)
+func _text(text: String, point: Vector2, px: int, color: Color = TEXT, strong: bool = false) -> void:
+	draw_string(bold if strong else font,point,text,HORIZONTAL_ALIGNMENT_LEFT,-1,px,color)
 
-func _center(text: String, x: float, y: float, size_px: int, color: Color = INK, strong: bool = false) -> void:
+func _center(text: String, x: float, y: float, px: int, color: Color = TEXT, strong: bool = false) -> void:
 	var f: Font = bold if strong else font
-	_text(text, Vector2(x - f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x / 2, y), size_px, color, strong)
+	_text(text,Vector2(x-f.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,px).x/2,y),px,color,strong)
 
-func _button(rect: Rect2, label: String, action: String, filled: bool = false, small: bool = false) -> void:
-	var is_hover := rect.has_point(hover)
-	var bg := INK if filled else Color("e9e5da")
-	if is_hover:
-		bg = bg.lightened(0.07) if filled else Color("deded0")
-	_box(rect, bg, 14)
-	_center(label, rect.get_center().x, rect.get_center().y + (6 if small else 8), 18 if small else 23, PAPER if filled else INK, filled)
-	buttons.append({"rect": rect, "action": action})
+func _button(rect: Rect2, label: String, action: String, filled: bool = false) -> void:
+	var color := MINT if filled else PANEL
+	if rect.has_point(hover): color = color.lightened(.08)
+	_box(rect,color,12)
+	_center(label,rect.get_center().x,rect.get_center().y+7,19,BG if filled else TEXT,filled)
+	buttons.append({"rect":rect,"action":action})
 
-func _screw(pos: Vector2, color_id: int, radius: float = 27.0, alpha: float = 1.0, angle: float = 0.0) -> void:
-	var c: Color = COLORS[color_id]
-	draw_circle(pos + Vector2(0, 4), radius + 1, Color(0.13, 0.21, 0.18, 0.2 * alpha), true, -1, true)
-	draw_circle(pos, radius, Color(c.darkened(0.19), alpha), true, -1, true)
-	draw_circle(pos + Vector2(0, -2), radius - 3, Color(c, alpha), true, -1, true)
-	draw_arc(pos + Vector2(0, -2), radius - 5, PI * 1.1, PI * 1.8, 18, Color(1, 1, 0.93, 0.28 * alpha), 2.0, true)
-	# Six distinct stamped symbols make colour optional.
-	var dark := Color(c.darkened(0.53), alpha)
-	var r := radius * 0.36
-	var center := pos + Vector2(0, -2)
-	match color_id:
-		0:
-			draw_line(center + Vector2(-r, -r).rotated(angle), center + Vector2(r, r).rotated(angle), dark, 4, true)
-			draw_line(center + Vector2(r, -r).rotated(angle), center + Vector2(-r, r).rotated(angle), dark, 4, true)
-		1: draw_arc(center, r, 0, TAU, 24, dark, 4, true)
-		2:
-			var points := PackedVector2Array([center + Vector2(0, -r-2), center + Vector2(r+1, r), center + Vector2(-r-1, r), center + Vector2(0, -r-2)])
-			draw_polyline(points, dark, 3.5, true)
-		3:
-			draw_line(center + Vector2(-r, 0), center + Vector2(r, 0), dark, 4, true)
-			draw_line(center + Vector2(0, -r), center + Vector2(0, r), dark, 4, true)
-		4:
-			draw_rect(Rect2(center - Vector2(r, r), Vector2(r*2, r*2)), dark, false, 3.5)
-		5:
-			draw_circle(center + Vector2(-r*0.65, 0), 3.3, dark, true, -1, true)
-			draw_circle(center + Vector2(r*0.65, 0), 3.3, dark, true, -1, true)
+func _tile(rect: Rect2, color: Color, alpha: float = 1.0) -> void:
+	_box(rect,Color(color.darkened(.25),alpha),9)
+	_box(Rect2(rect.position,rect.size-Vector2(0,4)),Color(color,alpha),9)
+	draw_line(rect.position+Vector2(12,6),rect.position+Vector2(rect.size.x-12,6),Color(1,1,1,.18*alpha),2,true)
+
+func _mini(shape: Array, center: Vector2, unit: float, color: Color, alpha: float = 1.0) -> void:
+	var extent := Vector2.ZERO
+	for p in shape: extent = extent.max(Vector2(float(p[0])+1,float(p[1])+1))
+	var origin := center-extent*unit*.5
+	for p in shape:
+		_tile(Rect2(origin+Vector2(p[0],p[1])*unit+Vector2(2,2),Vector2.ONE*(unit-4)),color,alpha)
 
 func _draw() -> void:
-	if levels.is_empty():
-		return
-	draw_rect(Rect2(Vector2.ZERO, size), PAPER)
-	draw_set_transform(_origin(), 0, Vector2.ONE * _layout_scale())
+	if levels.is_empty(): return
+	draw_rect(Rect2(Vector2.ZERO,size),BG)
+	draw_set_transform(_origin(),0,Vector2.ONE*_scale())
 	buttons.clear()
-	_text("R I V E T", Vector2(48, 76), 36, INK, true)
-	_text("A SMALL SORTING WORKSHOP", Vector2(50, 104), 12, MUTED)
-	_button(Rect2(307, 40, 112, 49), "Inspect", "inspect", false, true)
-	_button(Rect2(431, 40, 104, 49), "Levels", "levels", false, true)
-	_button(Rect2(547, 40, 54, 49), "On" if sound_on else "Off", "sound", false, true)
-	_button(Rect2(613, 40, 54, 49), "?", "help")
-	draw_line(Vector2(48, 129), Vector2(672, 129), Color("d9dccf"), 1)
-	_text("STUDY %02d / %02d   ·   %s" % [level_index+1, levels.size(), str(levels[level_index].get("chapter", "Plan")).to_upper()], Vector2(50, 170), 14, MUTED, true)
-	_text(levels[level_index].name, Vector2(48, 214), 34, INK, true)
-	_text("%02d" % matched, Vector2(585, 199), 34, INK, true)
-	_text("SETS", Vector2(590, 218), 11, MUTED)
+	_text("TESSERA",Vector2(48,76),38,TEXT,true)
+	_text("MAKE ROOM. MAKE A LINE.",Vector2(50,103),12,MUTED)
+	_button(Rect2(411,43,100,46),"Boards","levels")
+	_button(Rect2(523,43,94,46),"Queue","queue")
+	_button(Rect2(629,43,44,46),"?","help")
+	_text("BOARD %02d   /   %s" % [level_index+1, str(levels[level_index].chapter).to_upper()],Vector2(50,148),12,MUTED,true)
+	_text(str(levels[level_index].name),Vector2(48,184),27,TEXT,true)
+	_text("%d / %d" % [lines,rules.goal],Vector2(551,157),29,MINT,true)
+	_text("LINES",Vector2(559,180),11,MUTED)
 	_draw_board()
-	_draw_tray()
-	_button(Rect2(64, 888, 184, 57), "Undo", "undo")
-	_button(Rect2(268, 888, 184, 57), "Hint", "hint", true)
-	_button(Rect2(472, 888, 184, 57), "Restart", "restart")
-	var guidance := "Tap a tray screw to return it. Keyboard: 1–7."
-	if tray.size() >= 7:
-		guidance = "Tray full. Return a screw to make space."
-	elif tray.size() >= 5:
-		guidance = "Keep matching colours next to each other."
-	_center(guidance, 360, 978, 15, Color("b1624b") if tray.size() >= 5 else MUTED)
-	if message_time > 0 and screen in ["play", "full"]:
-		_box(Rect2(60, 698, 600, 40), INK, 12)
-		_center(message, 360, 724, 17, PAPER)
-	if screen not in ["play", "full"]:
+	var note := message if message_time>0 else ("Choose a piece, then its top-left cell." if selected<0 else "Tap a cell to place. Dragging works too.")
+	_center(note,360,757,17,MINT if message_time>0 else MUTED)
+	_draw_hand()
+	_button(Rect2(48,918,192,48),"Undo","undo")
+	_button(Rect2(264,918,192,48),"Hint","hint")
+	_button(Rect2(480,918,192,48),"Restart","restart")
+	_center("No timer. Every placement counts.",360,989,12,MUTED)
+	if screen != "play":
 		buttons.clear()
-		draw_rect(Rect2(0, 0, 720, 1000), Color(0.12, 0.21, 0.18, 0.62))
+		draw_rect(Rect2(0,0,720,1000),Color(.02,.04,.08,.80))
 		match screen:
+			"won","lost": _draw_result()
 			"help": _draw_help()
-			"inspect": _draw_inspect()
 			"levels": _draw_levels()
-			"won": _draw_result()
+			"queue": _draw_queue()
 
 func _draw_board() -> void:
-	_box(Rect2(48, 241, 624, 492), Color("e9e6da"), 22, Color("dfdfd2"))
-	for x in range(64, 661, 22):
-		for y in range(255, 720, 22):
-			draw_circle(Vector2(x, y), 0.8, Color("d5d6c8"))
-	for p in rules.plates.size():
-		if not rules.plate_active(p, removed) and not fading.has(p):
-			continue
-		var alpha: float = 1.0 if rules.plate_active(p, removed) else float(fading.get(p, 0)) / 0.32
-		if reduced_motion and alpha < 1:
-			continue
-		var data: Dictionary = rules.plates[p]
-		var r: Array = data.rect
-		var rect := Rect2(BOARD + Vector2(r[0], r[1]), Vector2(r[2], r[3]))
-		var c: Color = PLATE_COLORS[int(data.style)]
-		_box(Rect2(rect.position + Vector2(0, 6), rect.size), Color(0.17, 0.23, 0.17, 0.16 * alpha), 19)
-		_box(rect, Color(c, alpha), 18, Color(c.darkened(0.12), alpha), 1)
-		# A fine inset edge gives panels a machined, tactile finish.
-		_box(rect.grow(-5), Color.TRANSPARENT, 14, Color(1, 1, 0.9, 0.24*alpha), 1)
-		_text(str(p+1), rect.position + Vector2(9, 16), 11, Color(INK, alpha * 0.65), true)
-		for i in rules.screws.size():
-			var s: Dictionary = rules.screws[i]
-			if int(s.plate) != p:
-				continue
-			var pos := BOARD + Vector2(s.x, s.y)
-			if removed & (1 << i):
-				draw_circle(pos, 10, Color(c.darkened(0.18), alpha), true, -1, true)
-				draw_circle(pos + Vector2(0, 1), 6, Color(c.darkened(0.38), alpha), true, -1, true)
-			else:
-				_screw(pos, int(s.color), 27.0, alpha)
-	# Draw focus above every panel, but only for exposed targets.
-	for i in rules.screws.size():
-		if not rules.exposed(i, removed):
-			continue
-		var s: Dictionary = rules.screws[i]
-		var pos := BOARD + Vector2(s.x, s.y)
-		if i == hint_index or i == keyboard_index or (screen == "play" and hover.distance_to(pos) < 30):
-			var pulse := 1.0 if reduced_motion else 1.0 + sin(clock * 4) * 0.06
-			draw_arc(pos, 33.0 * pulse, 0, TAU, 48, INK, 2.5, true)
-	for f in flights:
-		if reduced_motion:
-			continue
-		var t := clampf(float(f.t) / 0.3, 0.0, 1.0)
-		var pos: Vector2 = f.from.lerp(f.to, 1 - pow(1-t, 3))
-		pos.y -= sin(t * PI) * 42
-		_screw(pos, int(f.color), 26, 1.0-t*0.25, t*PI)
-
-func _draw_tray() -> void:
-	_text("TRAY FULL — TAP A SCREW TO RETURN" if tray.size() >= 7 else "MATCH THREE IN A ROW. ORDER MATTERS.", Vector2(65, 768), 13, Color("b1624b") if tray.size() >= 6 else MUTED, true)
-	_text("%d / 7" % tray.size(), Vector2(607, 768), 14, Color("b1624b") if tray.size() >= 5 else MUTED)
-	_box(Rect2(64, 785, 592, 70), Color("dfdfd1"), 18)
-	for k in 7:
-		var pos := Vector2(108 + k * 84, 818)
-		draw_circle(pos, 29, Color("d2d5c7"), true, -1, true)
-		draw_arc(pos, 28, 0, TAU, 36, Color("c6cabc"), 1, true)
-		_center(str(k+1), pos.x, 874, 13, MUTED)
-		if k < 6:
-			draw_line(pos + Vector2(34, 0), pos + Vector2(50, 0), MUTED, 1.0, true)
-			draw_line(pos + Vector2(46, -3), pos + Vector2(50, 0), MUTED, 1.0, true)
-		if k < tray.size():
-			_screw(pos, int(rules.screws[tray[k]].color), 25)
-			if tray[k] == hint_return_id or (screen in ["play", "full"] and hover.distance_to(pos) < 30):
-				draw_arc(pos, 32, 0, TAU, 40, INK, 2.5, true)
+	_box(Rect2(90,198,540,540),PANEL,22)
+	for i in 36:
+		var pos := BOARD+Vector2(i%6,i/6)*CELL
+		var rect := Rect2(pos+Vector2(3,3),Vector2.ONE*(CELL-6))
+		_box(rect,EMPTY,10)
+		if board & (1<<i):
+			_tile(rect,Color("647b99") if ink[i]<0 else COLORS[ink[i]])
 		else:
-			draw_circle(pos, 2, Color("b4bcac"), true, -1, true)
-	for b in bursts:
-		if reduced_motion or b.t < 0:
-			continue
-		var t: float = b.t / 0.6
-		for n in 8:
-			var pos: Vector2 = b.pos + Vector2.from_angle(n * TAU / 8.0) * (10 + t*55)
-			draw_circle(pos, 4*(1-t), Color(COLORS[int(b.color)], 1-t), true, -1, true)
+			draw_circle(pos+Vector2.ONE*CELL*.5,2,Color("34465d"),true,-1,true)
+	if selected >= 0 and _inside(cursor) and screen == "play":
+		var preview := rules.place(board,used,lines,selected,cursor.x,cursor.y)
+		var valid := not preview.is_empty()
+		var color: Color = COLORS[selected%3] if valid else Color("ee7c7c")
+		for p in shapes[int(rules.pieces[selected])]:
+			var cell := cursor+Vector2i(int(p[0]),int(p[1]))
+			if _inside(cell):
+				var rect := Rect2(BOARD+Vector2(cell)*CELL+Vector2(4,4),Vector2.ONE*(CELL-8))
+				_box(rect,Color(color,.24),9,color,2)
+		if valid and int(preview.lines)>0:
+			for i in 36:
+				if int(preview.cleared)&(1<<i):
+					_box(Rect2(BOARD+Vector2(i%6,i/6)*CELL+Vector2(3,3),Vector2.ONE*(CELL-6)),Color(MINT,.10),10,MINT,2)
+	for flash in flashes:
+		if reduced_motion: continue
+		var i: int = flash.cell
+		var rect := Rect2(BOARD+Vector2(i%6,i/6)*CELL+Vector2(3,3),Vector2.ONE*(CELL-6))
+		_box(rect.grow(float(flash.t)*10),Color(MINT,(1.0-float(flash.t)/.45)*.7),10)
 
-func _draw_help() -> void:
-	_box(Rect2(55, 150, 610, 707), PAPER, 26)
-	_text("A little order.", Vector2(90, 218), 36, INK, true)
-	_text("Clear the panels and empty the tray.", Vector2(91, 258), 21, MUTED)
-	var instructions := [
-		["01", "Keep your order", "Each screw joins the right end of the tray.", "Colours are never rearranged for you."],
-		["02", "Match three in a row", "Three matching neighbours disappear.", "Separated matches stay in the tray."],
-		["03", "Put a screw back", "Tap a tray screw to return it to its panel.", "Closing the gap can create a triple."]]
-	for i in instructions.size():
-		var y := 317 + i * 115
-		_text(instructions[i][0], Vector2(92, y), 19, Color("b1624b"), true)
-		_text(instructions[i][1], Vector2(139, y), 23, INK, true)
-		_text(instructions[i][2], Vector2(139, y + 30), 17, MUTED)
-		_text(instructions[i][3], Vector2(139, y + 54), 17, MUTED)
-	_center("Arrows choose · Enter takes · 1–7 return", 360, 666, 17, MUTED)
-	_center("U undo · H hint · I inspect · R restart · M sound", 360, 695, 17, MUTED)
-	_button(Rect2(91, 725, 270, 52), "Motion: low" if reduced_motion else "Motion: full", "motion", false, true)
-	_button(Rect2(379, 725, 250, 52), "Let’s begin", "close", true)
-	_center("Returning screws is part of the puzzle. No penalty.", 360, 823, 16, MUTED)
-
-func _draw_inspect() -> void:
-	_box(Rect2(55, 123, 610, 777), PAPER, 26)
-	_text("Look underneath.", Vector2(90, 180), 32, INK, true)
-	_text("All remaining colours, from top panel to bottom.", Vector2(91, 217), 17, MUTED)
-	_text("Panel numbers are printed on the board. No hint used.", Vector2(91, 243), 16, MUTED)
-	var row := 0
-	for p in range(rules.plates.size()-1, -1, -1):
-		if not rules.plate_active(p, removed):
-			continue
-		var y := 286 + row * 42
-		_text("Panel %02d" % (p+1), Vector2(94, y+5), 18, INK, true)
-		var column := 0
-		var exposed_count := 0
-		for i in rules.screws.size():
-			if int(rules.screws[i].plate) != p:
-				continue
-			var pos := Vector2(275 + column * 56, y)
-			if not removed & (1 << i):
-				_screw(pos, int(rules.screws[i].color), 16)
-				if rules.exposed(i, removed):
-					exposed_count += 1
-			else:
-				draw_circle(pos, 5, Color("c6cabc"), true, -1, true)
-			column += 1
-		_text("%d exposed" % exposed_count, Vector2(467, y+5), 16, MUTED)
-		row += 1
-	_button(Rect2(91, 820, 538, 55), "Back to the puzzle", "close", true)
-
-func _draw_levels() -> void:
-	_box(Rect2(55, 155, 610, 693), PAPER, 26)
-	_text("The collection", Vector2(90, 219), 34, INK, true)
-	_text("%d of %d studies complete" % [completed.size(), levels.size()], Vector2(91, 255), 19, MUTED)
-	_text("1–3 Learn   ·   4–12 Plan   ·   13–24 Think ahead   ·   25–36 Master", Vector2(91, 279), 13, MUTED)
-	for i in levels.size():
-		var rect := Rect2(91 + (i % 6) * 90, 291 + (i / 6) * 73, 78, 60)
-		_button(rect, "%02d" % (i+1), "level:%d" % i, i == level_index)
-		if completed.has(str(i)):
-			draw_circle(rect.position + Vector2(64, 12), 4, Color("6a9d89"), unaided.has(str(i)), 1.5, true)
-	_button(Rect2(91, 751, 538, 56), "Back to the workbench", "close", true)
+func _draw_hand() -> void:
+	var group := rules.available(used)
+	var start: int = (group[0]/3)*3 if not group.is_empty() else 0
+	for slot in 3:
+		var id := start+slot
+		var rect := Rect2(48+slot*212,779,200,116)
+		var active := group.has(id)
+		_box(rect,PANEL if active else Color("141e2e"),16,COLORS[slot] if id==selected else Color.TRANSPARENT,2)
+		if active:
+			_mini(shapes[int(rules.pieces[id])],rect.get_center()+Vector2(0,4),25,COLORS[slot])
+			_text(str(slot+1),rect.position+Vector2(13,23),12,MUTED)
+		else:
+			_center("Placed",rect.get_center().x,rect.get_center().y+5,14,MUTED)
 
 func _draw_result() -> void:
-	_box(Rect2(74, 303, 572, 381), PAPER, 26)
-	_center("STUDY %02d" % (level_index+1), 360, 353, 15, MUTED, true)
-	_center("All in order.", 360, 413, 38, INK, true)
-	var result_note := "Unaided solve." if undos_used == 0 and hints_used == 0 else "%d undos  /  %d hints" % [undos_used, hints_used]
-	_center(result_note, 360, 459, 20, MUTED)
-	_center("%d sets  /  %d returns  /  peak tray %d" % [matched, returns_used, peak], 360, 508, 17, MUTED)
-	_button(Rect2(112, 544, 496, 61), "Next study" if level_index < levels.size()-1 else "Back to collection", "next", true)
-	_button(Rect2(218, 616, 284, 42), "Play this study again", "restart", false, true)
+	_box(Rect2(64,290,592,430),PANEL,24)
+	var won := screen == "won"
+	_center("BOARD %02d" % (level_index+1),360,337,13,MUTED,true)
+	_center("Room for more." if won else "Out of room.",360,396,36,TEXT,true)
+	_center("%d of %d lines cleared" % [lines,rules.goal],360,439,21,MINT if won else CORAL)
+	var subtitle := "Solved without hints or undo." if hints==0 and undos==0 else "%d undos   /   %d hints" % [undos,hints]
+	if not won: subtitle = "Try a different order or placement."
+	_center(subtitle,360,478,17,MUTED)
+	if won:
+		_button(Rect2(104,523,512,60),"Next board" if level_index<levels.size()-1 else "All boards","next",true)
+	else:
+		_button(Rect2(104,523,512,60),"Undo last placement","undo",true)
+	_button(Rect2(104,604,512,52),"Try this board again","restart")
+
+func _draw_help() -> void:
+	_box(Rect2(48,160,624,690),PANEL,24)
+	_text("A little foresight.",Vector2(84,222),33,TEXT,true)
+	var tips := [["01  Pick a piece","Choose one of the three pieces below the board."],
+		["02  Find its space","Tap its top-left cell, or drag it onto the grid."],
+		["03  Make a line","Full rows and columns clear together."],
+		["04  Reach the target","Use the fixed pieces to clear enough lines."]]
+	for i in tips.size():
+		var y := 284+i*87
+		_text(tips[i][0],Vector2(85,y),22,MINT,true)
+		_text(tips[i][1],Vector2(85,y+30),17,MUTED)
+	_center("Pieces stay upright. Queue shows what comes next.",360,636,16,MUTED)
+	_center("1–3 choose · Arrows move · Enter places",360,674,16,MUTED)
+	_center("U undo · H hint · R restart",360,700,16,MUTED)
+	_button(Rect2(84,728,168,44),"Sound: on" if sound else "Sound: off","sound")
+	_button(Rect2(264,728,168,44),"Less motion" if not reduced_motion else "Full motion","motion")
+	_button(Rect2(444,728,192,44),"Let’s play","close",true)
+	_center("Plan your order. Make space for the big pieces.",360,813,16,MUTED)
+
+func _draw_levels() -> void:
+	_box(Rect2(64,218,592,580),PANEL,24)
+	_text("The collection",Vector2(104,278),34,TEXT,true)
+	_text("%d / 18 complete" % completed.size(),Vector2(105,315),19,MUTED)
+	for i in 18:
+		var rect := Rect2(104+(i%6)*88,353+(i/6)*89,72,66)
+		_button(rect,"%02d"%(i+1),"level:%d"%i,i==level_index)
+		if completed.has(str(i)): draw_circle(rect.position+Vector2(59,12),4,MINT,clean.has(str(i)),1.5,true)
+	_center("01–06 Learn   /   07–12 Plan   /   13–18 Master",360,657,16,MUTED)
+	_button(Rect2(104,700,512,55),"Back to the board","close",true)
+
+func _draw_queue() -> void:
+	_box(Rect2(64,170,592,650),PANEL,24)
+	_text("See the whole plan.",Vector2(104,231),32,TEXT,true)
+	_text("Use each set of three before the next arrives.",Vector2(105,270),17,MUTED)
+	for i in rules.pieces.size():
+		var pos := Vector2(197+(i%3)*163,360+(i/3)*123)
+		if i%3==0: _text("SET %d"%(i/3+1),Vector2(104,pos.y-49),12,MUTED,true)
+		_mini(shapes[int(rules.pieces[i])],pos,24,COLORS[i%3],.20 if used&(1<<i) else 1.0)
+	_button(Rect2(104,729,512,55),"Back to the board","close",true)

@@ -35,26 +35,20 @@ jobs:
           template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$template_dir"
           unzip -j -q /tmp/templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
-      - name: Import and test
+      - name: Import and test both projects
         run: |
           set -euo pipefail
-          godot --headless --editor --path . --import --quit 2>&1 | tee /tmp/import.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/import.log
+          for project in . experiments/rivet; do
+            godot --headless --editor --path "$project" --import --quit 2>&1 | tee /tmp/import.log
+            ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/import.log
+            timeout 120s godot --headless --path "$project" --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
+            ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
+            grep -q 'failures=0' /tmp/tests.log
+          done
           python3 tools/generate_levels.py
-          git diff --exit-code -- data/levels.json
-          python3 tools/audit_levels.py --check
-          git diff --exit-code -- docs/difficulty-audit.json
-          timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
-          grep -q 'failures=0' /tmp/tests.log
-      - name: Export web game
-        run: |
-          set -euo pipefail
-          mkdir -p build/web
-          touch build/.gdignore
-          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/export.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/export.log
-          python3 tools/prepare_web.py
+          git diff --exit-code -- data/levels.json data/shapes.json docs/difficulty-audit.json
+      - name: Export both web games
+        run: bash tools/build_web.sh
       - name: Test desktop and mobile browsers
         run: |
           npm ci
@@ -71,7 +65,7 @@ jobs:
       - name: Upload downloadable web build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: rivet-web
+          name: puzzle-web
           path: build/web/
           retention-days: 14
       - name: Package Pages artifact
