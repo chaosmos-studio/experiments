@@ -89,7 +89,7 @@ Pool, in order: Match-3, Merge-2, Block placement, Sorting, Screw puzzles, Daily
 
 Recorded seed: `1067741102`. Python method: `random.Random(seed).sample(pool, 3)`.
 
-Result: **Screw puzzles, Match-3, Sorting**. The complete record is in [selection.json](../experiments/rivet/docs/selection.json). It was a single draw; the categories were not rerolled to fit the implementation. Blast was excluded because chain-clearing would overlap with Carillon's identity, and arrow escape because it directly overlaps with Apsis.
+Result: **Screw puzzles, Match-3, Sorting**. The complete record is in [selection.json](../../rivet/docs/selection.json). It was a single draw; the categories were not rerolled to fit the implementation. Blast was excluded because chain-clearing would overlap with Carillon's identity, and arrow escape because it directly overlaps with Apsis.
 
 The prototype borrows the three-of-a-kind reward from matching. It is not a conventional adjacent-swap Match-3 board, and no claim is made that it inherits Match-3 market size or retention.
 

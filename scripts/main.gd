@@ -319,17 +319,17 @@ func _draw() -> void:
 		var p := Vector2(48+fmod(i*149.0,624),252+fmod(i*83.0,520))
 		draw_circle(p,1.1,Color(BLUE,0.10+0.07*sin(t*0.6+i)),true,-1,true)
 	_text("F I L A M E N T",Vector2(42,61),24,INK,true)
-	_button(Rect2(489,26,99,52),"Webs","levels")
-	_button(Rect2(604,26,74,52),"?","help")
 	if screen=="levels": _draw_levels();return
 	if screen=="help": _draw_help();return
+	_button(Rect2(489,26,99,52),"Webs","levels")
+	_button(Rect2(604,26,74,52),"?","help")
 	_text("%02d / %02d   ·   %s" % [level_index+1,levels.size(),"UNTANGLED" if screen=="won" else "UNTANGLE THE WEB"],Vector2(44,126),19,GREEN if screen=="won" else MUTED)
 	_text("Beautifully done." if screen=="won" else str(levels[level_index].name),Vector2(42,187),45,INK,true)
 	_text("A little space. A little clarity." if screen=="won" else "Drag the knots. Uncross every strand.",Vector2(44,225),25,MUTED)
 	_pill(Rect2(537,119,141,91),Color("251e32"))
 	var count_label := str(report.count)
 	_text(count_label,Vector2(607-bold.get_string_size(count_label,HORIZONTAL_ALIGNMENT_LEFT,-1,40).x/2,163),40,GREEN if report.count==0 else CORAL,true)
-	_text("tangles",Vector2(567,192),20,MUTED)
+	_text("tangle" if report.count==1 else "tangles",Vector2(567,192),20,MUTED)
 	_draw_web(t)
 	if screen=="won":
 		_center("%d moves  ·  %s" % [moves,"No hints" if hints==0 else "%d hints" % hints],820,26,GREEN)
