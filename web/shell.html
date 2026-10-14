@@ -3,20 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="filament-version" content="1">
-<meta name="theme-color" content="#100e1c">
-<meta name="description" content="Filament: drag glowing knots and untangle twelve living webs.">
+<meta name="filament-version" content="2">
+<meta name="theme-color" content="#f6f2eb">
+<meta name="description" content="Filament: drag knots and untangle twelve living webs.">
 <title>Filament — find your flow</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('filament-theme')||'light'}catch(e){}</script>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100e1c;color:#f3efdf;font:16px system-ui,sans-serif}canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#100e1c;z-index:10}.card{max-width:380px;padding:32px;text-align:center}h1{font-size:36px;letter-spacing:.22em;margin:16px 0}p{line-height:1.6;color:#aaa1bc}progress{width:220px;height:5px;border:0;border-radius:8px;accent-color:#a3f0cb}#error{display:none;white-space:pre-wrap;font-size:14px}button{border:0;background:#f3efdf;color:#100e1c;border-radius:10px;padding:12px 24px;font:inherit;cursor:pointer}noscript{position:fixed;inset:0;padding:20vh 10vw;text-align:center;background:#100e1c}
-.mark{display:grid;grid-template-columns:repeat(2,26px);gap:5px;width:57px;margin:0 auto 24px}.mark i{height:26px;background:#a3f0cb;border-radius:6px}.mark i:last-child{background:#eea579}#archive-link{position:fixed;right:16px;bottom:9px;color:#aaa1bc;font-size:12px;text-decoration:none;z-index:3}#archive-link:hover{color:#a3f0cb}button{background:#a3f0cb;color:#100e1c}
+:root{--paper:#f6f2eb;--ink:#34313e;--muted:#706b78;--accent:#5965a2;--green:#367760;color-scheme:light}
+:root[data-theme=dark]{--paper:#12111e;--ink:#f6f1ea;--muted:#aea6bc;--accent:#aaa9ef;--green:#a3ddc2;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font:16px system-ui,sans-serif}canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:10}.card{max-width:380px;padding:32px;text-align:center}h1{font-size:26px;font-weight:500;letter-spacing:.23em;margin:28px 0 16px}p{line-height:1.6;color:var(--muted)}progress{width:220px;height:4px;border:0;border-radius:8px;accent-color:var(--green)}#error{display:none;white-space:pre-wrap;font-size:14px}button{border:0;background:var(--green);color:var(--paper);border-radius:12px;padding:12px 24px;font:inherit;cursor:pointer}noscript{position:fixed;inset:0;padding:20vh 10vw;text-align:center;background:var(--paper)}#archive-link{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(9px,env(safe-area-inset-bottom));color:var(--muted);font-size:11px;text-decoration:none;z-index:3}#archive-link:hover{color:var(--green)}
+@media(max-width:500px){#archive-link{right:8px;bottom:5px;font-size:9px}}
 </style>
 $GODOT_HEAD_INCLUDE
 </head>
 <body>
 <div id="game-state" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)"></div>
-<canvas id="canvas" tabindex="0" aria-label="Filament untangling puzzle. Drag knots. Tab selects a knot, arrows move it, Enter releases. U undo, H hint, R restart.">Your browser needs canvas support.</canvas>
-<div id="loading" role="status" aria-live="polite"><div class="card"><svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20L80 80L80 20L20 80Z" fill="none" stroke="#aaa0ff" stroke-width="2"/><g fill="#f6f1ee"><circle cx="20" cy="20" r="6"/><circle cx="80" cy="80" r="6"/><circle cx="80" cy="20" r="6"/><circle cx="20" cy="80" r="6"/></g></svg><h1>FILAMENT</h1><p id="status">Waking the threads…</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<canvas id="canvas" tabindex="0" aria-label="Filament untangling puzzle. Drag knots. Tab selects a knot, arrows move it, Enter releases. U undo, H hint, R restart. M music.">Your browser needs canvas support.</canvas>
+<div id="loading" role="status" aria-live="polite"><div class="card"><svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20L80 80L80 20L20 80Z" fill="none" stroke="var(--accent)" stroke-width="2"/><g fill="var(--accent)"><circle cx="20" cy="20" r="6"/><circle cx="80" cy="80" r="6"/><circle cx="80" cy="20" r="6"/><circle cx="20" cy="80" r="6"/></g></svg><h1>FILAMENT</h1><p id="status">Finding a little space…</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
 <a id="archive-link" href="experiments/">Past experiments</a>
 <noscript>Filament needs JavaScript enabled to run the Godot game.</noscript>
 <script src="wasm-loader.js"></script>

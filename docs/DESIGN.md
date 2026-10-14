@@ -25,11 +25,13 @@ Hints never move knots automatically. All twelve webs are available from Webs.
 
 ## Feedback and controls
 
-Crossed strands glow coral and crossing points carry diamonds. Clear strands glow
+Crossed strands turn coral and crossing points carry diamonds. Clear strands turn
 blue; a finished web turns green. Light travels along the lines, knots pulse on
 contact, and the completed web releases a short particle burst. The geometry stays
 straight and stable so the drawn crossings agree with the rules. Motion can be
-reduced, and sound can be muted. Both preferences persist.
+reduced. Music and effects have separate switches, and music has a volume control.
+Light mode is the default; dark mode is an explicit saved choice. All preferences
+persist.
 
 Touch is handled directly, with one active finger. Mouse emulation is disabled to
 avoid duplicate touch actions. Overlapping knots cycle selection so a knot cannot
@@ -38,7 +40,14 @@ knots inside the playable area. A win only triggers after release, so moving thr
 a clear intermediate arrangement cannot steal control.
 
 Keyboard: Tab cycles knots, arrows move, Shift gives finer movement, Enter releases,
-Escape cancels, U undoes, H hints, R resets, L opens the web list.
+Escape cancels, U undoes, H hints, R resets, L opens the web list, M toggles music.
+
+The interface uses warm ivory, ink-blue strands, coral crossings and green success.
+Manrope labels pair with italic Cormorant Garamond headings. Portrait screens use
+more vertical space and a slightly larger web. The gallery shows each graph as a
+small illustration. Music adds a quiet melody as the number of tangles decreases;
+both stems stay aligned and crossfade. It begins after interaction and pauses when
+the window loses focus.
 
 ## Content and verification
 

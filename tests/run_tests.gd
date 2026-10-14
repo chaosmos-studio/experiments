@@ -38,6 +38,12 @@ func run() -> void:
 	root.add_child(game)
 	await process_frame
 	check(not game.sound and game.reduced_motion,"Preferences load")
+	check(game.light_mode,"Legacy saves adopt light mode")
+	check(not game.music_enabled,"Legacy mute preference carries into music")
+	check(not game.score.started,"No music autoplay before a gesture")
+	check(game.score.bed.stream.loop and game.score.melody.stream.loop,"Both score stems loop")
+	check(absf(game.score.bed.stream.get_length()-game.score.melody.stream.get_length())<0.001,"Score stems share one loop length")
+	check(game.score.bed.stream.get_length()>50,"Full-length music is loaded")
 	for index in levels.size():
 		game._load_level(index)
 		var first: Array[Vector2] = game.points.duplicate()
@@ -92,12 +98,55 @@ func run() -> void:
 	var enter := InputEventKey.new();enter.keycode=KEY_ENTER;enter.pressed=true
 	game._key(enter)
 	check(game.moves==1 and game.dragging==-1,"Enter releases a keyboard move")
-	game._action("help");game._action("sound");game._action("motion");game._action("close")
+	game._action("settings")
+	game._action("help");game._action("close")
+	check(game.screen=="settings","Help returns to settings")
+	game._action("sound");game._action("motion");game._action("theme")
+	game._action("music")
+	check(game.music_enabled and game.score.started,"Music starts from a gesture")
+	await create_timer(0.35).timeout
+	check(game.score.is_audible(),"Music plays after activation")
+	var position: float = game.score.bed.get_playback_position()
+	await create_timer(0.20).timeout
+	check(game.score.bed.get_playback_position()>position,"Music playback advances")
+	game._action("sound")
+	check(not game.sound and game.score.is_audible(),"Effects mute does not stop music")
+	game._notification(Control.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	check(game.score.bed.stream_paused and game.score.melody.stream_paused,"Both music stems pause when unfocused")
+	game._notification(Control.NOTIFICATION_APPLICATION_FOCUS_IN)
+	check(game.score.is_audible(),"Music resumes after focus returns")
+	game._action("music")
+	await create_timer(0.7).timeout
+	check(game.score.bed.stream_paused and game.score.melody.stream_paused,"Muted music fades then pauses both stems")
+	game._action("sound")
+	check(game.sound and not game.music_enabled,"Music mute is independent of effects")
+	for i in 12: game._action("louder")
+	check(game.music_volume==1.0,"Volume upper bound")
+	for i in 14: game._action("quieter")
+	check(game.music_volume==0.0,"Volume lower bound")
+	for i in 4: game._action("louder")
+	game._action("close")
 	check(game.screen=="play" and game.sound and not game.reduced_motion,"Settings return to current web")
+	check(not game.light_mode,"Dark mode is an explicit choice")
+	# A portrait canvas uses more vertical room without changing puzzle geometry.
+	game.size=Vector2(720,1440);await process_frame
+	var original: Vector2 = game.points[0]
+	check(game._world(game._graph(original)).distance_to(original)<0.001,"Portrait coordinates round-trip")
+	game._press(game._graph(original),0)
+	check(game.dragging==0,"Portrait touch selects the visible knot")
+	game._move(game._world(game._graph(original+Vector2(20,10))));game._release()
+	check(game.points[0].distance_to(original+Vector2(20,10))<0.01,"Portrait dragging follows the visible knot")
+	game._undo()
 	game.queue_free();await process_frame
 	var reloaded=load("res://scenes/main.tscn").instantiate();root.add_child(reloaded);await process_frame
 	check(reloaded.completed.size()==12 and reloaded.sound and not reloaded.reduced_motion,"Progress and preferences persist")
+	check(not reloaded.light_mode and not reloaded.music_enabled and is_equal_approx(reloaded.music_volume,0.4),"Appearance, music and volume persist")
+	check(not reloaded.score.started,"Reload does not autoplay saved music")
+	reloaded._action("theme")
+	check(reloaded.light_mode,"Light mode can be restored")
 	reloaded.queue_free();await process_frame
+	# Give the audio mixer a cycle to retire the stopped playback resources.
+	await create_timer(0.15).timeout
 	if had_save:
 		file=FileAccess.open("user://filament.json",FileAccess.WRITE);file.store_string(old_save);file.close()
 	else: DirAccess.remove_absolute(ProjectSettings.globalize_path("user://filament.json"))

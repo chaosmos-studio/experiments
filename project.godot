@@ -20,7 +20,7 @@ window/handheld/orientation=1
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
-environment/defaults/default_clear_color=Color(0.063, 0.055, 0.110, 1)
+environment/defaults/default_clear_color=Color(0.964706, 0.94902, 0.921569, 1)
 
 [input_devices]
 pointing/emulate_touch_from_mouse=false
@@ -28,3 +28,7 @@ pointing/emulate_mouse_from_touch=false
 
 [audio]
 driver/enable_input=false
+
+[editor]
+; Avoid the Godot 4.5 concurrent font-import race (godotengine/godot#111039).
+import/use_multiple_threads=false

@@ -14,4 +14,7 @@ for archived in rivet tessera; do
   cp -a "experiments/$archived/build/web/." "build/web/experiments/$archived/"
 done
 cp web/experiments.html build/web/experiments/index.html
+mkdir -p build/web/licenses
+cp assets/fonts/*-LICENSE.txt build/web/licenses/
+cp assets/CREDITS.txt build/web/licenses/CREDITS.txt
 python3 tools/check_web_paths.py
