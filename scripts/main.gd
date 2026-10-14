@@ -336,16 +336,20 @@ func _button(rect: Rect2, label: String, action: String, filled: bool = false) -
 	buttons.append({"rect":rect,"action":action})
 
 func _tile(rect: Rect2, color: Color, alpha: float = 1.0) -> void:
-	_box(rect,Color(color.darkened(.25),alpha),9)
-	_box(Rect2(rect.position,rect.size-Vector2(0,4)),Color(color,alpha),9)
-	draw_line(rect.position+Vector2(12,6),rect.position+Vector2(rect.size.x-12,6),Color(1,1,1,.18*alpha),2,true)
+	var radius := mini(9, int(rect.size.x*0.18))
+	var bevel := minf(4.0, rect.size.x*0.10)
+	_box(rect,Color(color.darkened(.25),alpha),radius)
+	_box(Rect2(rect.position,rect.size-Vector2(0,bevel)),Color(color,alpha),radius)
+	var inset := rect.size.x*0.15
+	draw_line(rect.position+Vector2(inset,bevel),rect.position+Vector2(rect.size.x-inset,bevel),Color(1,1,1,.18*alpha),1.5,true)
 
 func _mini(shape: Array, center: Vector2, unit: float, color: Color, alpha: float = 1.0) -> void:
 	var extent := Vector2.ZERO
 	for p in shape: extent = extent.max(Vector2(float(p[0])+1,float(p[1])+1))
-	var origin := center-extent*unit*.5
+	var tile_unit := minf(unit, 96.0/maxf(extent.x,extent.y))
+	var origin := center-extent*tile_unit*.5
 	for p in shape:
-		_tile(Rect2(origin+Vector2(p[0],p[1])*unit+Vector2(2,2),Vector2.ONE*(unit-4)),color,alpha)
+		_tile(Rect2(origin+Vector2(p[0],p[1])*tile_unit+Vector2(2,2),Vector2.ONE*(tile_unit-4)),color,alpha)
 
 func _draw() -> void:
 	if levels.is_empty(): return
@@ -416,7 +420,7 @@ func _draw_hand() -> void:
 		var active := group.has(id)
 		_box(rect,PANEL if active else Color("141e2e"),16,COLORS[slot] if id==selected else Color.TRANSPARENT,2)
 		if active:
-			_mini(shapes[int(rules.pieces[id])],rect.get_center()+Vector2(0,4),25,COLORS[slot])
+			_mini(shapes[int(rules.pieces[id])],rect.get_center()+Vector2(0,4),32,COLORS[slot])
 			_text(str(slot+1),rect.position+Vector2(13,23),12,MUTED)
 		else:
 			_center("Placed",rect.get_center().x,rect.get_center().y+5,14,MUTED)
