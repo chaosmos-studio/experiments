@@ -61,13 +61,18 @@ var last_audio_playing := false
 
 
 func _ready() -> void:
-	font = load("res://assets/fonts/Manrope.ttf")
-	bold = FontVariation.new()
-	bold.base_font = font
-	bold.variation_opentype={"wght":650.0}
+	var source_font: Font = load("res://assets/fonts/Manrope.ttf")
+	var weight_axis := TextServerManager.get_primary_interface().name_to_tag("wght")
+	var body_font := FontVariation.new()
+	body_font.base_font=source_font
+	body_font.variation_opentype={weight_axis:500.0}
+	font=body_font
+	bold=FontVariation.new()
+	bold.base_font=source_font
+	bold.variation_opentype={weight_axis:650.0}
 	display_font=FontVariation.new()
 	display_font.base_font=load("res://assets/fonts/CormorantGaramond-Italic.ttf")
-	display_font.variation_opentype={"wght":550.0}
+	display_font.variation_opentype={weight_axis:550.0}
 	var gradient := Gradient.new()
 	gradient.offsets=PackedFloat32Array([0.0,0.35,1.0])
 	gradient.colors=PackedColorArray([Color(1,1,1,0.65),Color(1,1,1,0.20),Color(1,1,1,0)])
