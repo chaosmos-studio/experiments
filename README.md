@@ -1,29 +1,12 @@
-# Filament
+# Game experiments
 
-Drag knots to untangle a living web.
+Filament has moved to [chaosmos-studio/filament](https://github.com/chaosmos-studio/filament).
 
-[Play](https://shravangoswami.com/game-experiment/)
+[Play Filament](https://chaosmos.studio/filament/play/)
 
-- 12 puzzles with free knots and fixed anchors.
-- Light mode by default, with optional dark mode.
-- Animated strands, undo, hints, and reduced motion.
-- Original ambient music, separate effects, and volume controls.
-- Mouse, touch, and keyboard controls.
-- Progress saved on this device.
+Earlier experiments:
 
-Use Godot 4.5.2 to open `project.godot`.
+- [Rivet](https://shravangoswami.com/game-experiment/experiments/rivet/)
+- [Tessera](https://shravangoswami.com/game-experiment/experiments/tessera/)
 
-```sh
-godot --headless --script res://tests/run_tests.gd
-python3 tools/generate_levels.py
-bash tools/build_web.sh
-npm ci
-npx playwright install chromium
-npx playwright test
-```
-
-Pushes to `main` test and deploy all three games with GitHub Pages.
-
-Past experiments: [Tessera](experiments/tessera/) · [Rivet](experiments/rivet/).
-
-[Similar games](docs/COMPARABLES.md) · [Music and credits](docs/AUDIO.md) · [Design](docs/DESIGN.md) · [Research](docs/RESEARCH.md) · [Deployment](docs/DEPLOYMENT.md)
+The root Filament prototype is retained here as a frozen reference. Active code, campaign work, and publishing CI live in the new repository. This repository publishes only the experiment archive and a redirect.

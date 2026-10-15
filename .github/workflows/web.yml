@@ -1,4 +1,4 @@
-name: Test and publish web
+name: Test and publish archived experiments
 
 on:
   push:
@@ -35,25 +35,23 @@ jobs:
           template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$template_dir"
           unzip -j -q /tmp/templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
-      - name: Import and test all three projects
+      - name: Import and test archived projects
         run: |
           set -euo pipefail
-          for project in . experiments/rivet experiments/tessera; do
+          for project in experiments/rivet experiments/tessera; do
             godot --headless --editor --path "$project" --import --quit 2>&1 | tee /tmp/import.log
             ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/import.log
             timeout 120s godot --headless --path "$project" --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
             ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
             grep -q 'failures=0' /tmp/tests.log
           done
-          python3 tools/generate_levels.py
-          git diff --exit-code -- data/levels.json docs/difficulty-audit.json
-      - name: Export all three web games
+      - name: Export archived web games
         run: bash tools/build_web.sh
       - name: Test desktop and mobile browsers
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          npx playwright test
+          npx playwright test rivet.spec.js tessera.spec.js
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
-for project in . experiments/rivet experiments/tessera; do
+for project in experiments/rivet experiments/tessera; do
   mkdir -p "$project/build/web"
   touch "$project/build/.gdignore"
   godot --headless --path "$project" --export-release Web "$repo_root/$project/build/web/index.html" 2>&1 | tee /tmp/export.log
@@ -14,7 +14,5 @@ for archived in rivet tessera; do
   cp -a "experiments/$archived/build/web/." "build/web/experiments/$archived/"
 done
 cp web/experiments.html build/web/experiments/index.html
-mkdir -p build/web/licenses
-cp assets/fonts/*-LICENSE.txt build/web/licenses/
-cp assets/CREDITS.txt build/web/licenses/CREDITS.txt
+cp web/moved.html build/web/index.html
 python3 tools/check_web_paths.py
