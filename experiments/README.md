@@ -1,6 +1,6 @@
 # Past experiments
 
-- [Tessera](tessera/) — [play](https://shravangoswami.com/game-experiment/experiments/tessera/)
-- [Rivet](rivet/) — [play](https://shravangoswami.com/game-experiment/experiments/rivet/)
+- [Tessera](tessera/), [play](https://chaosmos.studio/experiments/tessera/)
+- [Rivet](rivet/), [play](https://chaosmos.studio/experiments/rivet/)
 
 Each directory is a standalone Godot project.

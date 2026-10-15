@@ -1,10 +1,10 @@
 # Rivet
 
-Archived experiment. [Play Tessera](https://shravangoswami.com/game-experiment/) is the current game.
+Archived experiment.
 
 A quiet sorting puzzle made in Godot. Keep screws in removal order, match three neighbours, and return pieces to their panels.
 
-[Play Rivet](https://shravangoswami.com/game-experiment/experiments/rivet/)
+[Play Rivet](https://chaosmos.studio/experiments/rivet/)
 
 - 36 verified solvable levels
 - Inspect hidden colours, undo, hints, and saved completion
@@ -33,6 +33,6 @@ Keyboard: arrows select, Enter collects, 1–7 return tray slots, U undoes, H hi
 - [Game design](docs/DESIGN.md)
 - [Difficulty checks](docs/BALANCE.md)
 - [Web publishing](docs/DEPLOYMENT.md)
-- [Build workflow](https://github.com/shravanngoswamii/game-experiment/actions/workflows/web.yml)
+- [Build workflow](https://github.com/chaosmos-studio/experiments/actions/workflows/web.yml)
 
-CI tests and exports each push to `main`, then publishes to GitHub Pages.
+CI tests and exports each push to `main`, then publishes to chaosmos.studio.
