@@ -173,8 +173,9 @@ test('friendly controls, visible growth, saved gardens and recovery',async({page
   await page.keyboard.press('z');await page.waitForFunction(()=>window.hingeState.moves===0);
   if(info.project.name==='mobile'){
     await page.setViewportSize({width:360,height:640});
-    await page.waitForTimeout(300);
+    await page.waitForFunction(()=>Math.abs(window.hingeState.viewport[0]/window.hingeState.viewport[1]-360/640)<0.001);
     await action('settings');
+    await page.waitForFunction(()=>window.hingeState.screen==='settings'&&window.hingeState.buttons.some(b=>b.id==='guidance'));
     const state=await read(),canvas=await page.locator('canvas').boundingBox();
     for(const button of state.buttons){
       expect(button.size[1]/state.viewport[1]*canvas.height).toBeGreaterThanOrEqual(48);

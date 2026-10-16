@@ -117,7 +117,16 @@ func _sound(name: String) -> void:
 
 func _restore() -> void:
 	var config: ConfigFile = ConfigFile.new()
-	if config.load(SAVE_PATH) == OK:
+	var loaded: bool = false
+	# IndexedDB flushes asynchronously. Read the synchronous browser snapshot first.
+	if OS.has_feature("web"):
+		var snapshot: Variant = JavaScriptBridge.eval("(()=>{try{return localStorage.getItem('hinge-grove-save-v2')}catch(e){return null}})()")
+		if snapshot is String and not snapshot.is_empty():
+			loaded = config.parse(snapshot) == OK
+	if not loaded:
+		config = ConfigFile.new()
+		loaded = config.load(SAVE_PATH) == OK
+	if loaded:
 		current = clampi(int(config.get_value("progress", "level", 0)), 0, levels.size() - 1)
 		var saved: Variant = config.get_value("progress", "completed", {})
 		if saved is Dictionary:
@@ -150,6 +159,10 @@ func _save() -> void:
 		saved_runs[str(current)] = {"revision": 1, "level": current, "state": state.duplicate(true), "history": history.duplicate(true), "moves": moves}
 		config.set_value("runs", "by_level", saved_runs)
 	config.save(SAVE_PATH)
+	if OS.has_feature("web"):
+		# A refresh immediately after a move must not race the filesystem flush.
+		var snapshot: String = JSON.stringify(config.encode_to_text())
+		JavaScriptBridge.eval("(()=>{try{localStorage.setItem('hinge-grove-save-v2'," + snapshot + ");return true}catch(e){return false}})()")
 
 func _load_level(index: int, resume: bool = true) -> void:
 	current = clampi(index, 0, levels.size() - 1)
