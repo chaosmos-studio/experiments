@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="hinge-grove-version" content="1"><meta name="robots" content="noindex"><meta name="theme-color" content="#f5f3eb"><meta name="description" content="Swing paired seeds around each other. Plant them carefully and watch a little garden bloom."><title>Hinge Grove</title>
+<style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f5f3eb;color:#273d35;font:16px system-ui,sans-serif}canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}#loading{position:fixed;inset:0;display:grid;place-items:center;background:#f5f3eb;z-index:10}.card{max-width:380px;padding:32px;text-align:center}h1{font-size:27px;font-weight:600;margin:28px 0 12px}p{line-height:1.6;color:#667367}progress{width:210px;height:4px;accent-color:#39775e}#error{display:none;white-space:pre-wrap;font-size:14px}button{border:0;background:#273d35;color:#f5f3eb;border-radius:12px;padding:12px 24px;font:inherit;cursor:pointer}</style>
+$GODOT_HEAD_INCLUDE
+</head><body>
+<canvas id="canvas" tabindex="0" aria-label="Hinge Grove. Tap a seed then a marked landing spot. Arrow keys select a cell, Enter selects. Z undo, H hint, R reset.">Your browser needs canvas support.</canvas>
+<div id="loading" role="status"><div class="card"><svg width="92" height="92" viewBox="0 0 100 100" aria-hidden="true"><path d="M23 72Q29 31 76 25" fill="none" stroke="#89a57c" stroke-width="6"/><circle cx="23" cy="72" r="14" fill="#39775e"/><circle cx="76" cy="25" r="14" fill="#b65a3c"/></svg><h1>Hinge Grove</h1><p id="status">Making room to grow.</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<noscript>This Godot puzzle needs JavaScript enabled.</noscript>
+<script src="wasm-loader.js"></script><script src="$GODOT_URL"></script>
+<script>
+const canvas=document.getElementById('canvas');
+canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault()});
+const engine=new Engine($GODOT_CONFIG);
+function fail(error){document.getElementById('status').textContent='The garden could not open.';const el=document.getElementById('error');el.style.display='block';el.textContent=String(error)+'\nUse a browser with WebGL 2 and WebAssembly.';document.getElementById('retry').hidden=false;}
+const missing=Engine.getMissingFeatures({threads:false});
+if(missing.length){fail(missing.join(', '))}else{engine.startGame({canvas,onProgress:(n,total)=>{if(total)document.getElementById('progress').value=n/total}}).then(()=>{document.getElementById('loading').style.display='none';canvas.focus()}).catch(fail)}
+</script></body></html>

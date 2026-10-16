@@ -1,8 +1,9 @@
 # Experiments
 
-Chaosmos prototypes that did not ship.
+Chaosmos game prototypes.
 Each one is a standalone Godot project under `experiments/`.
 
+- [Hinge Grove](experiments/hinge-grove/), a garden puzzle about swinging paired seeds and choosing when to take root. [Play the preview](https://chaosmos.studio/experiments/hinge-grove/)
 - [Rivet](experiments/rivet/), a sorting puzzle about taking screws out in order. [Play the preview](https://chaosmos.studio/experiments/rivet/)
 - [Tessera](experiments/tessera/), a finite block puzzle with fixed pieces and line goals. [Play the preview](https://chaosmos.studio/experiments/tessera/)
 
@@ -11,8 +12,8 @@ The list at [chaosmos.studio/experiments](https://chaosmos.studio/experiments/) 
 
 ## Run
 
-Both prototypes use Godot 4.5.2.
-Run these from `experiments/rivet` or `experiments/tessera`.
+All prototypes use Godot 4.5.2.
+Run these from the individual game's directory under `experiments/`.
 
 ```sh
 godot --path .
@@ -29,4 +30,4 @@ npx playwright install chromium
 npx playwright test
 ```
 
-Every push to `main` runs the same checks for both and publishes them to chaosmos.studio.
+Every code push to `main` runs the checks for all three and publishes them to chaosmos.studio.

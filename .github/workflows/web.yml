@@ -27,6 +27,8 @@ jobs:
             marker: rivet-campaign
           - game: tessera
             marker: tessera-version
+          - game: hinge-grove
+            marker: hinge-grove-version
     defaults:
       run:
         working-directory: experiments/${{ matrix.game }}
@@ -53,6 +55,9 @@ jobs:
           timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
           grep -q 'failures=0' /tmp/tests.log
+      - name: Audit Hinge Grove campaign
+        if: matrix.game == 'hinge-grove'
+        run: python3 tools/audit_levels.py
       - name: Export web build
         run: |
           set -euo pipefail
@@ -85,7 +90,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # Deploys only once both builds pass, one after the other.
+  # Deploys only once all builds pass, one after the other.
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -119,3 +124,14 @@ jobs:
           force: false
           attempt-limit: 10
           commit-message: Update Tessera's web build
+      - name: Deploy to chaosmos.studio/experiments/hinge-grove/
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: site/web-hinge-grove
+          target-folder: experiments/hinge-grove
+          force: false
+          attempt-limit: 10
+          commit-message: Update Hinge Grove's web build

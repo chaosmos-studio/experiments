@@ -1,0 +1,261 @@
+{
+  "seed": 16102026,
+  "sha256": "a1705db1997e29ae8cbef37ea529c28b8044be1fceb289ded87be62689b46601",
+  "levels": 30,
+  "symmetry_pairs": 435,
+  "native_cross_check": "tests/run_tests.gd",
+  "random_policy": "uniform among legal moves, at most twice shortest solution length, 300 trials per board",
+  "results": [
+    {
+      "level": 1,
+      "par": 2,
+      "states": 4,
+      "random_wins_in_twice_par": 300,
+      "trials": 300
+    },
+    {
+      "level": 2,
+      "par": 2,
+      "states": 8,
+      "random_wins_in_twice_par": 149,
+      "trials": 300
+    },
+    {
+      "level": 3,
+      "par": 3,
+      "states": 10,
+      "random_wins_in_twice_par": 166,
+      "trials": 300
+    },
+    {
+      "level": 4,
+      "par": 3,
+      "states": 15,
+      "random_wins_in_twice_par": 161,
+      "trials": 300
+    },
+    {
+      "level": 5,
+      "par": 5,
+      "states": 21,
+      "random_wins_in_twice_par": 57,
+      "trials": 300
+    },
+    {
+      "level": 6,
+      "par": 6,
+      "states": 24,
+      "random_wins_in_twice_par": 59,
+      "trials": 300
+    },
+    {
+      "level": 7,
+      "par": 6,
+      "states": 39,
+      "random_wins_in_twice_par": 51,
+      "trials": 300
+    },
+    {
+      "level": 8,
+      "par": 6,
+      "states": 74,
+      "random_wins_in_twice_par": 51,
+      "trials": 300
+    },
+    {
+      "level": 9,
+      "par": 6,
+      "states": 106,
+      "random_wins_in_twice_par": 70,
+      "trials": 300
+    },
+    {
+      "level": 10,
+      "par": 6,
+      "states": 181,
+      "random_wins_in_twice_par": 33,
+      "trials": 300
+    },
+    {
+      "level": 11,
+      "par": 7,
+      "states": 78,
+      "random_wins_in_twice_par": 10,
+      "trials": 300
+    },
+    {
+      "level": 12,
+      "par": 7,
+      "states": 184,
+      "random_wins_in_twice_par": 48,
+      "trials": 300
+    },
+    {
+      "level": 13,
+      "par": 7,
+      "states": 298,
+      "random_wins_in_twice_par": 1,
+      "trials": 300
+    },
+    {
+      "level": 14,
+      "par": 8,
+      "states": 223,
+      "random_wins_in_twice_par": 79,
+      "trials": 300
+    },
+    {
+      "level": 15,
+      "par": 8,
+      "states": 279,
+      "random_wins_in_twice_par": 4,
+      "trials": 300
+    },
+    {
+      "level": 16,
+      "par": 9,
+      "states": 271,
+      "random_wins_in_twice_par": 9,
+      "trials": 300
+    },
+    {
+      "level": 17,
+      "par": 10,
+      "states": 301,
+      "random_wins_in_twice_par": 3,
+      "trials": 300
+    },
+    {
+      "level": 18,
+      "par": 12,
+      "states": 73,
+      "random_wins_in_twice_par": 1,
+      "trials": 300
+    },
+    {
+      "level": 19,
+      "par": 12,
+      "states": 215,
+      "random_wins_in_twice_par": 3,
+      "trials": 300
+    },
+    {
+      "level": 20,
+      "par": 12,
+      "states": 678,
+      "random_wins_in_twice_par": 3,
+      "trials": 300
+    },
+    {
+      "level": 21,
+      "par": 12,
+      "states": 988,
+      "random_wins_in_twice_par": 7,
+      "trials": 300
+    },
+    {
+      "level": 22,
+      "par": 12,
+      "states": 1852,
+      "random_wins_in_twice_par": 6,
+      "trials": 300
+    },
+    {
+      "level": 23,
+      "par": 13,
+      "states": 437,
+      "random_wins_in_twice_par": 18,
+      "trials": 300
+    },
+    {
+      "level": 24,
+      "par": 13,
+      "states": 982,
+      "random_wins_in_twice_par": 1,
+      "trials": 300
+    },
+    {
+      "level": 25,
+      "par": 13,
+      "states": 1960,
+      "random_wins_in_twice_par": 0,
+      "trials": 300
+    },
+    {
+      "level": 26,
+      "par": 14,
+      "states": 509,
+      "random_wins_in_twice_par": 1,
+      "trials": 300
+    },
+    {
+      "level": 27,
+      "par": 14,
+      "states": 2012,
+      "random_wins_in_twice_par": 0,
+      "trials": 300
+    },
+    {
+      "level": 28,
+      "par": 15,
+      "states": 355,
+      "random_wins_in_twice_par": 0,
+      "trials": 300
+    },
+    {
+      "level": 29,
+      "par": 16,
+      "states": 603,
+      "random_wins_in_twice_par": 0,
+      "trials": 300
+    },
+    {
+      "level": 30,
+      "par": 18,
+      "states": 4831,
+      "random_wins_in_twice_par": 0,
+      "trials": 300
+    }
+  ],
+  "dead_end_fixture": {
+    "level": 10,
+    "moves": [
+      [
+        1,
+        7,
+        -1
+      ],
+      [
+        0,
+        4,
+        1
+      ],
+      [
+        0,
+        4,
+        1
+      ],
+      [
+        0,
+        4,
+        -1
+      ],
+      [
+        0,
+        5,
+        -1
+      ],
+      [
+        0,
+        9,
+        1
+      ]
+    ],
+    "state": [
+      9,
+      10,
+      7,
+      11
+    ]
+  }
+}
