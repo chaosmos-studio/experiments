@@ -2,11 +2,11 @@
 
 ## A turn
 
-A plant occupies adjacent integer grid cells `p` and `q`. Hold `p`; let `d = q - p`.
+A plant occupies adjacent integer grid cells `p` and `q`. The player selects moving seed `q`; its partner `p` stays fixed. Let `d = q - p`.
 For a clockwise quarter-turn, `r = (-d.y, d.x)`; counterclockwise uses `-r`.
 The landing cell is `p + r`, and the swept corner is `p + d + r`.
 Both must be inside the garden and empty of stones and other seeds. The conservative corner rule
-matches the visible quarter-circle clearance of a seed with radius 32 on a pitch of 128.
+matches the visible quarter-circle clearance of a seed with radius 36 on a pitch of 144.
 
 A seed on its own soil cannot be the moving end. This is derived from coordinates, so there is no
 hidden lock flag to drift out of sync. A plant whose two cells match its goal pair is complete and
@@ -61,7 +61,7 @@ also corrupts a solution and duplicates a board to verify that its guards reject
 
 ## Useful tuning values
 
-- `PITCH = 128` logical pixels; seed radius 32, hit radius 50.
-- `SWING_SECONDS = 0.34`; reduced motion uses 0.06 seconds.
+- `PITCH = 144` logical pixels; seed radius 36, hit radius 60.
+- `SWING_SECONDS = 0.28`; reduced motion uses 0.06 seconds.
 - Solver cap: 100,000 discovered states. Largest shipped opening search: 4,831 states.
 - Original music: 32 seconds, four eight-second chords, deterministic synthesis at 22,050 Hz.

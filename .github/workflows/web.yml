@@ -74,6 +74,13 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
           npx playwright test
+      - name: Keep Hinge Grove review frames
+        if: matrix.game == 'hinge-grove'
+        run: |
+          mkdir -p build/web/review
+          for frame in 01-guidance 02-drag-preview 03-roots 04-petals-opening 05-bloom 06-recovery 07-settings 08-small-phone garden-30; do
+            cp test-results/*-mobile/"$frame.png" "build/web/review/$frame.png"
+          done
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

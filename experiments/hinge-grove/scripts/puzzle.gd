@@ -103,3 +103,30 @@ static func solve(level: Dictionary, start: Array, cap: int = 100000) -> Diction
 				if visited.size() >= cap:
 					return {"status": "limit", "route": [], "states": visited.size()}
 	return {"status": "stuck", "route": [], "states": visited.size()}
+
+## Explain a failed gesture using the same quarter-turn geometry as options().
+static func explain(level: Dictionary, state: Array, piece: int, mobile: int, turn: int) -> Dictionary:
+	if piece < 0 or piece >= state.size() or mobile not in state[piece]:
+		return {"message": "Choose a seed to move.", "cells": [], "kind": "selection"}
+	if mobile in level.goals[piece]:
+		return {"message": "This seed has roots. Move its partner.", "cells": [mobile], "kind": "root"}
+	var pin: int = int(state[piece][0]) if int(state[piece][1]) == mobile else int(state[piece][1])
+	for option: Dictionary in options(level, state, piece, pin):
+		if int(option.turn) == turn:
+			return {"message": "Release on the marked landing spot.", "cells": [], "kind": "legal"}
+	var n: int = int(level.size)
+	var p: Vector2i = point(pin, n)
+	var d: Vector2i = point(mobile, n) - p
+	var r: Vector2i = Vector2i(-d.y, d.x) * turn
+	var target: Vector2i = p + r
+	var corner: Vector2i = p + d + r
+	if mini(target.x, target.y) < 0 or maxi(target.x, target.y) >= n or mini(corner.x, corner.y) < 0 or maxi(corner.x, corner.y) >= n:
+		return {"message": "Keep the whole swing inside the garden.", "cells": [mobile], "kind": "edge"}
+	var occupied: Array = level.walls.duplicate()
+	for pair: Array in state:
+		occupied.append_array(pair)
+	var destination: int = target.y * n + target.x
+	var sweep: int = corner.y * n + corner.x
+	if destination in occupied:
+		return {"message": "That landing spot is occupied.", "cells": [destination], "kind": "landing"}
+	return {"message": "This corner blocks the swing.", "cells": [sweep], "kind": "corner"}

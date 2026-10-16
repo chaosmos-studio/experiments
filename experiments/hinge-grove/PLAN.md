@@ -20,12 +20,12 @@ The 500-level Pyxis campaign is not a requirement to duplicate before testing th
 
 ## Mechanics
 
-Each plant is a pair of neighbouring seeds joined by a stem. Select the seed that stays still, then
-select the partner's landing spot. A quarter-turn needs a clear destination and swept corner.
+Each plant is a pair of neighbouring seeds joined by a stem. Select the seed that moves, then
+select its landing spot. Its partner stays still. A quarter-turn needs a clear destination and swept corner.
 The cells of a matching soil pair root that plant's seeds. A rooted seed cannot move. Both rooted
 seeds bloom and remain on the board. Stones and other plants block movement.
 
-Touch/mouse: two taps, or drag the moving seed to a legal landing spot. Keyboard: arrows select a cell,
+Touch/mouse: tap the moving seed and its landing spot, or drag that same seed with a live arc preview. Keyboard: arrows select a cell,
 Enter selects/acts, Z undo, R reset, H hint, Escape closes a sheet. One touch owns a gesture.
 
 ## Content
@@ -38,9 +38,10 @@ rotation/reflection/colour-renaming duplicate is allowed. Perceived difficulty s
 ## Presentation
 
 Warm paper, sage soil, green/terracotta/blue plants. Plain Manrope at two weights. The seeds and soil
-also carry circle/diamond/cross marks. Gentle swing easing, leaf movement, rooting and blooms.
+also carry circle/diamond/cross marks. Springy turns, spreading roots, unfurling leaves, staggered petals and brief leaf/pollen bursts.
 An original 32-second score and short turn/root/bloom/undo sounds. Music and effects mute separately;
-reduced motion removes leaf sway and shortens turns. Progress is local to this browser/device.
+reduced motion removes sway and particles, settles growth and shortens turns. Per-garden boards and
+validated undo histories save locally. Short opening lessons are attached to the board and can be disabled.
 
 ## Architecture
 
@@ -70,3 +71,17 @@ rescued by undo. A small prototype sample cannot establish market retention or p
 Kill or change the concept if players cannot distinguish the hinge from the moving seed, if rooting
 feels arbitrary despite its visible marks, or if solving feels like aimless tapping. Consider a drag-first
 guide or fewer choices before producing more levels. Keep the generator seed fixed while comparing UI.
+
+## 0.2 usability pass
+
+The same seed moves for both tapping and dragging. Previews show the arc and future roots before release.
+The first gardens teach movement, rooting and corner clearance in place. Failed gestures identify the
+blocking cell. A proven dead end offers recovery to the latest solvable history state; it never changes a
+legal move or prevents experimentation. Restart confirmation protects progress, and completed garden cards
+start a replay while unfinished cards restore their saved state.
+
+Growth is cosmetic, in `scripts/growth.gd`; roots and blooms derive from the verified board transition.
+`scripts/session.gd` validates every saved transition and selects the next unfinished garden.
+The browser suite now checks actual mouse/touch drags, ignored second touches, canceled releases, previews,
+root growth, reload and gallery recovery, restart protection, dead-end recovery, reduced motion and small-phone targets.
+CI-generated review images are published under `review/` alongside the web build.
