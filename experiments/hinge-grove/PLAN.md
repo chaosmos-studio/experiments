@@ -55,7 +55,7 @@ validated undo histories save locally. Short opening lessons are attached to the
 
 - M0 mechanical gate: done. Real choices, legal dead ends, independently proven solvability.
 - M1 playable loop: done. Swing, root, bloom, undo, reset, hint, next, gallery, ending.
-- M2 presentation and web verification: done. CI passed; the published mobile preview was played successfully on 16 October 2026. See `docs/VERIFICATION.md`.
+- M2 presentation and web verification: done. Version 0.2 passed native, desktop/mobile browser checks and deployment; CI screenshots were visually reviewed. See `docs/VERIFICATION.md` for scope and the earlier live playtest.
 - M3 human fun test: pending. Do not scale the content or add monetization before this passes.
 
 ## Playtest decision
