@@ -54,7 +54,7 @@ reduced motion removes leaf sway and shortens turns. Progress is local to this b
 
 - M0 mechanical gate: done. Real choices, legal dead ends, independently proven solvability.
 - M1 playable loop: done. Swing, root, bloom, undo, reset, hint, next, gallery, ending.
-- M2 presentation and web verification: in progress until the published preview is checked.
+- M2 presentation and web verification: done. CI passed; the published mobile preview was played successfully on 16 October 2026. See `docs/VERIFICATION.md`.
 - M3 human fun test: pending. Do not scale the content or add monetization before this passes.
 
 ## Playtest decision
