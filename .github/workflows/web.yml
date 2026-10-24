@@ -22,13 +22,17 @@ jobs:
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         include:
           - game: rivet
+            name: Rivet
             marker: rivet-campaign
           - game: tessera
+            name: Tessera
             marker: tessera-version
           - game: hinge-grove
+            name: Hinge Grove
             marker: hinge-grove-version
     defaults:
       run:
@@ -104,64 +108,25 @@ jobs:
           for frame in 01-guidance 02-drag-preview 03-roots 04-petals-opening 05-bloom 06-recovery 07-settings 08-small-phone garden-30; do
             cp test-results/*-mobile/"$frame.png" "build/web/review/$frame.png"
           done
+      # The org's artifact storage is small and fills up, so the screenshots are kept when there is room and
+      # each build deploys itself rather than passing through an artifact to a separate job.
       - name: Upload browser screenshots
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: browser-checks-${{ matrix.game }}
           path: experiments/${{ matrix.game }}/test-results/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Upload web build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: web-${{ matrix.game }}
-          path: experiments/${{ matrix.game }}/build/web/
-          if-no-files-found: error
-          retention-days: 14
-
-  # Deploys only once all builds pass, one after the other.
-  deploy:
-    needs: build
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Download web builds
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: web-*
-          path: site
-      - name: Deploy to chaosmos.studio/experiments/rivet/
+      - name: Deploy to chaosmos.studio/experiments/${{ matrix.game }}/
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           repository-name: chaosmos-studio/chaosmos-studio.github.io
           ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
           branch: gh-pages
-          folder: site/web-rivet
-          target-folder: experiments/rivet
+          folder: experiments/${{ matrix.game }}/build/web
+          target-folder: experiments/${{ matrix.game }}
           force: false
           attempt-limit: 10
-          commit-message: Update Rivet's web build
-      - name: Deploy to chaosmos.studio/experiments/tessera/
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          repository-name: chaosmos-studio/chaosmos-studio.github.io
-          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          branch: gh-pages
-          folder: site/web-tessera
-          target-folder: experiments/tessera
-          force: false
-          attempt-limit: 10
-          commit-message: Update Tessera's web build
-      - name: Deploy to chaosmos.studio/experiments/hinge-grove/
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          repository-name: chaosmos-studio/chaosmos-studio.github.io
-          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          branch: gh-pages
-          folder: site/web-hinge-grove
-          target-folder: experiments/hinge-grove
-          force: false
-          attempt-limit: 10
-          commit-message: Update Hinge Grove's web build
+          commit-message: Update ${{ matrix.name }}'s web build
