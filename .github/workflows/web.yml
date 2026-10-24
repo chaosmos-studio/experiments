@@ -18,7 +18,8 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # The org variable RUNNER moves the builds onto a self-hosted runner, to save the plan's minutes.
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       matrix:
@@ -34,27 +35,44 @@ jobs:
         working-directory: experiments/${{ matrix.game }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # A self-hosted runner keeps Godot and the templates between jobs, so each is fetched once. Its
+      # connection can cut a large download short while curl still exits 0, so a file resumes until its
+      # checksum matches. No sudo: Godot goes into the tool cache and onto the PATH.
       - name: Install pinned Godot and web templates
         run: |
           set -euo pipefail
           base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          curl --fail --location --retry 3 "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o /tmp/godot.zip
-          curl --fail --location --retry 3 "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o /tmp/templates.tpz
-          echo '87f6e6be292929e363d15ed9052f277b2ba4e95ed994e1e099048097be2dfd03  /tmp/godot.zip' | sha256sum --check
-          echo 'ea50e5183f057d42b22120d0d0340205b98f51f8ff13c33c70fd4ac9077d2019  /tmp/templates.tpz' | sha256sum --check
-          unzip -q /tmp/godot.zip -d /tmp/godot
-          sudo install -m 755 "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          fetch() {
+            for _ in 1 2 3 4 5 6; do
+              curl --fail --silent --show-error --location --retry 3 -C - "$base/$1" -o "$RUNNER_TEMP/$1" || true
+              echo "$2  $RUNNER_TEMP/$1" | sha256sum --check --quiet && return 0
+            done
+            rm -f "$RUNNER_TEMP/$1"
+            return 1
+          }
+          tools="$RUNNER_TOOL_CACHE/godot/${GODOT_VERSION}"
+          if [ ! -x "$tools/godot" ]; then
+            fetch "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" 87f6e6be292929e363d15ed9052f277b2ba4e95ed994e1e099048097be2dfd03
+            unzip -q -o "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -d "$RUNNER_TEMP/godot"
+            mkdir -p "$tools"
+            install -m 755 "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$tools/godot"
+          fi
+          echo "$tools" >> "$GITHUB_PATH"
           template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          mkdir -p "$template_dir"
-          unzip -j -q /tmp/templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
+          if [ ! -f "$template_dir/web_nothreads_release.zip" ]; then
+            fetch "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" ea50e5183f057d42b22120d0d0340205b98f51f8ff13c33c70fd4ac9077d2019
+            mkdir -p "$template_dir"
+            unzip -j -q -o "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
+            rm -f "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          fi
       - name: Import and test
         run: |
           set -euo pipefail
-          godot --headless --editor --path . --import --quit 2>&1 | tee /tmp/import.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/import.log
-          timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee /tmp/tests.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/tests.log
-          grep -q 'failures=0' /tmp/tests.log
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/import.log"
+          timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/tests.log"
+          grep -q 'failures=0' "$RUNNER_TEMP/tests.log"
       - name: Audit Hinge Grove campaign
         if: matrix.game == 'hinge-grove'
         run: python3 tools/audit_levels.py
@@ -63,16 +81,21 @@ jobs:
           set -euo pipefail
           mkdir -p build/web
           touch build/.gdignore
-          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/export.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/export.log
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/export.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/export.log"
           python3 tools/prepare_web.py
           grep -q '${{ matrix.marker }}' build/web/index.html
           test -f build/web/index.js
           test -f build/web/index.pck
+      # --with-deps installs system libraries through apt, which only GitHub's Ubuntu machines have.
       - name: Test desktop and mobile browsers
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          if [ "$RUNNER_ENVIRONMENT" = "github-hosted" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install chromium
+          fi
           npx playwright test
       - name: Keep Hinge Grove review frames
         if: matrix.game == 'hinge-grove'
@@ -100,7 +123,7 @@ jobs:
   # Deploys only once all builds pass, one after the other.
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
