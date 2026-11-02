@@ -9,6 +9,7 @@ Each one is a standalone Godot project under `experiments/`.
 
 Game Off 2026 drafts for the theme SHIFT:
 
+- [Compassfall](experiments/compassfall/), run, jump and turn gravity through a clockwork station. [Play on the web](https://chaosmos.studio/experiments/compassfall/)
 - [Handover](experiments/handover/), assign three caretakers to connected tasks in an orbital greenhouse. [Play on the web](https://chaosmos.studio/experiments/handover/)
 - [Phasewalk](experiments/phasewalk/), switch between two versions of a room to cross blocked paths. [Play on the web](https://chaosmos.studio/experiments/phasewalk/)
 - [Rowshift](experiments/rowshift/), slide rows and columns to match four stones with their marks. [Play on the web](https://chaosmos.studio/experiments/rowshift/)
@@ -21,7 +22,7 @@ The list at [chaosmos.studio/experiments](https://chaosmos.studio/experiments/) 
 
 ## Run
 
-Phasewalk and Rowshift use Godot 4.7.
+Compassfall, Handover, Phasewalk and Rowshift use Godot 4.7.
 The three earlier experiments use Godot 4.5.2.
 Run these from the individual game's directory under `experiments/`.
 
