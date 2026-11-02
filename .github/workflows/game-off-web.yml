@@ -1,0 +1,123 @@
+name: Test and publish Game Off drafts
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/game-off-web.yml
+      - experiments/phasewalk/**
+      - experiments/rowshift/**
+      - tools/prepare_web.py
+      - tools/check_web.cjs
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/game-off-web.yml
+      - experiments/phasewalk/**
+      - experiments/rowshift/**
+      - tools/prepare_web.py
+      - tools/check_web.cjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-site
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7
+
+jobs:
+  build:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned Godot and web templates
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          fetch() {
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              curl --fail --silent --show-error --location --retry 3 -C - "$base/$1" -o "$RUNNER_TEMP/$1" || true
+              echo "$2  $RUNNER_TEMP/$1" | sha256sum --check --quiet && return 0
+            done
+            rm -f "$RUNNER_TEMP/$1"
+            return 1
+          }
+          tools="$RUNNER_TOOL_CACHE/godot/${GODOT_VERSION}"
+          if [ ! -x "$tools/godot" ]; then
+            fetch "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" 0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c
+            unzip -q -o "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -d "$RUNNER_TEMP/godot"
+            mkdir -p "$tools"
+            install -m 755 "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$tools/godot"
+          fi
+          echo "$tools" >> "$GITHUB_PATH"
+          template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          if [ ! -f "$template_dir/web_nothreads_release.zip" ]; then
+            fetch "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" 9714459dc071907c0f3d5f17d608faf69e7cda21331fc5d39c4503ffa4e99eec
+            mkdir -p "$template_dir"
+            unzip -j -q -o "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
+            rm -f "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          fi
+      - name: Import, play through, and export both drafts
+        run: |
+          set -euo pipefail
+          for game in phasewalk rowshift; do
+            cd "experiments/$game"
+            mkdir -p build/web
+            touch build/.gdignore
+            godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/$game-import.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/$game-import.log"
+            timeout 120s godot --headless --path . --script res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/$game-tests.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/$game-tests.log"
+            grep -q 'failures=0' "$RUNNER_TEMP/$game-tests.log"
+            godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/$game-export.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/$game-export.log"
+            python3 ../../tools/prepare_web.py
+            grep -q "$game-version" build/web/index.html
+            test -f build/web/index.js
+            test -f build/web/index.pck
+            cd ../..
+          done
+      - name: Check phone browser loading and touch
+        run: |
+          set -euo pipefail
+          npm ci --prefix experiments/rivet
+          export CHROME_PATH="$(command -v google-chrome)"
+          node tools/check_web.cjs phasewalk
+          node tools/check_web.cjs rowshift
+      - name: Upload phone screenshots
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: game-off-phone-checks
+          path: experiments/*/test-results/mobile.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Publish Phasewalk
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/phasewalk/build/web
+          target-folder: experiments/phasewalk
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Phasewalk
+      - name: Publish Rowshift
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/rowshift/build/web
+          target-folder: experiments/rowshift
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Rowshift
