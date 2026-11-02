@@ -91,15 +91,10 @@ jobs:
           grep -q '${{ matrix.marker }}' build/web/index.html
           test -f build/web/index.js
           test -f build/web/index.pck
-      # --with-deps installs system libraries through apt, which only GitHub's Ubuntu machines have.
       - name: Test desktop and mobile browsers
         run: |
           npm ci
-          if [ "$RUNNER_ENVIRONMENT" = "github-hosted" ]; then
-            npx playwright install --with-deps chromium
-          else
-            npx playwright install chromium
-          fi
+          export CHROME_PATH="$(command -v google-chrome)"
           npx playwright test
       - name: Keep Hinge Grove review frames
         if: matrix.game == 'hinge-grove'
