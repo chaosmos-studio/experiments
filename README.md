@@ -9,6 +9,7 @@ Each one is a standalone Godot project under `experiments/`.
 
 Game Off 2026 drafts for the theme SHIFT:
 
+- [Handover](experiments/handover/), assign three caretakers to connected tasks in an orbital greenhouse. [Play on the web](https://chaosmos.studio/experiments/handover/)
 - [Phasewalk](experiments/phasewalk/), switch between two versions of a room to cross blocked paths. [Play on the web](https://chaosmos.studio/experiments/phasewalk/)
 - [Rowshift](experiments/rowshift/), slide rows and columns to match four stones with their marks. [Play on the web](https://chaosmos.studio/experiments/rowshift/)
 - [Flipline](experiments/flipline/), tap to reverse gravity and slip past barriers. [Play on the web](https://chaosmos.studio/experiments/flipline/)

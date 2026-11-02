@@ -1,0 +1,64 @@
+name: Test and publish Handover
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/handover-web.yml
+      - experiments/handover/**
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/handover-web.yml
+      - experiments/handover/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: experiments/handover
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install Godot 4.7
+        run: |
+          set -euo pipefail
+          curl -fLsS https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip -o "$RUNNER_TEMP/godot.zip"
+          echo '0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c  '"$RUNNER_TEMP/godot.zip" | sha256sum --check --quiet
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/Godot_v4.7-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Import, play through, and export
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          touch build/.gdignore
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/handover-import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/handover-import.log"
+          godot --headless --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/handover-tests.log"
+          grep -q '0 failed' "$RUNNER_TEMP/handover-tests.log"
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/handover-export.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/handover-export.log"
+          test -s build/web/index.html
+          test -s build/web/index.pck
+          test -s build/web/index.wasm
+      - name: Publish Handover
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/handover/build/web
+          target-folder: experiments/handover
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Handover

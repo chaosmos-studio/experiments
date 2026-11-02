@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#fff9e9">
+<link rel="icon" href="data:,">
+<title>Handover | Chaosmos</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fff9e9;color:#243b36;font:18px system-ui,sans-serif}
+canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff9e9;text-align:center;padding:24px}
+#loading[hidden]{display:none}
+#loading h1{font-size:clamp(36px,8vw,76px);font-weight:500;letter-spacing:.11em;margin:0 0 12px}
+#loading p{font-size:18px;color:#54716a}
+progress{width:min(320px,80vw);height:8px;accent-color:#5c8d6e}
+#error{max-width:32em;white-space:pre-wrap}
+#retry{border:1px solid #5c8d6e;background:#5c8d6e;color:#fff9e9;padding:12px 20px;border-radius:12px;font:inherit}
+#rotate{position:fixed;inset:0;display:none;place-items:center;background:#fff9e9;text-align:center;padding:24px;z-index:5}
+@media (orientation:portrait) and (max-width:800px){#rotate{display:grid}}
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Handover game. Tap a machine and shift between caretakers.">Canvas is required to play Handover.</canvas>
+<div id="loading" role="status"><div><h1>HANDOVER</h1><p id="status">Waking the greenhouse...</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<div id="rotate"><div><h1>Turn your phone sideways</h1><p>The greenhouse is easier to tend in landscape.</p></div></div>
+<noscript>Enable JavaScript to play Handover.</noscript>
+<script src="$GODOT_URL"></script>
+<script>
+const engine = new Engine($GODOT_CONFIG);
+const loading = document.getElementById('loading');
+function fail(error) {
+  document.getElementById('status').textContent = 'The greenhouse could not open.';
+  document.getElementById('error').textContent = String(error);
+  document.getElementById('progress').hidden = true;
+  document.getElementById('retry').hidden = false;
+}
+const missing = Engine.getMissingFeatures({threads: false});
+if (missing.length) {
+  fail('This browser needs WebGL 2 and WebAssembly: ' + missing.join(', '));
+} else {
+  engine.startGame({canvas: document.getElementById('canvas'), onProgress: (current, total) => {
+    if (total > 0) document.getElementById('progress').value = current / total;
+  }}).then(() => { loading.hidden = true; document.getElementById('canvas').focus(); }).catch(fail);
+}
+</script>
+</body>
+</html>
