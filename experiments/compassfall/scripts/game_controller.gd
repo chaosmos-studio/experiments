@@ -4,6 +4,7 @@ const PILOT_SCRIPT: Script = preload("res://scripts/player.gd")
 const CARGO_SCRIPT: Script = preload("res://scripts/cargo.gd")
 const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
+const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
 
 var level_index: int = 0
 var level: Dictionary = {}
@@ -11,6 +12,9 @@ var gravity_direction: Vector2 = Vector2.DOWN
 var phase: int = 0
 var collected: Array[bool] = []
 var pad_armed: bool = false
+var checkpoint_active: bool = false
+var respawn_position: Vector2 = Vector2.ZERO
+var respawning: bool = false
 var playing: bool = false
 var finished: bool = false
 var run_time: float = 0.0
@@ -22,6 +26,7 @@ var world: CompassWorldView
 var pilot: CompassPilot
 var cargo: CompassCargo
 var bridges: Array[CollisionShape2D] = []
+var sentries: Array[CompassSentry] = []
 var camera: Camera2D
 var hud: CompassHud
 var sound: AudioStreamPlayer
@@ -52,7 +57,7 @@ func _ready() -> void:
 	hud.move_pressed.connect(func(axis: float) -> void: if is_instance_valid(pilot): pilot.touch_axis = axis)
 	hud.shift_pressed.connect(_shift)
 	_load_level(0)
-	hud.show_panel("COMPASSFALL", "A little pilot. A station losing its light.\n\nRun and jump through the clockwork. Turn gravity to move yourself and cargo. Each turn changes the light bridges. Collect three sparks and reach the gold door.", "START SHIFT")
+	hud.show_panel("COMPASSFALL", "A little pilot. A station losing its light.\n\nRun and jump through the clockwork. Turn gravity to move yourself and cargo. A shift changes light bridges and briefly pauses clock eyes. Touch a beacon to keep your sparks after a hit.", "START SHIFT")
 
 
 func _process(delta: float) -> void:
@@ -92,6 +97,10 @@ func _load_level(index: int) -> void:
 	gravity_direction = Vector2.DOWN
 	phase = 0
 	pad_armed = false
+	checkpoint_active = false
+	respawn_position = level["start"]
+	respawning = false
+	last_shift = -1.0
 	collected.clear()
 	for ignored: Vector2 in level["shards"]:
 		collected.append(false)
@@ -108,8 +117,18 @@ func _load_level(index: int) -> void:
 		_add_wall(bridge, true)
 	for hazard: Rect2 in level["hazards"]:
 		_add_hazard(hazard)
+	sentries.clear()
+	for sentry_data: Dictionary in level["sentries"]:
+		var sentry: CompassSentry = SENTRY_SCRIPT.new() as CompassSentry
+		sentry.configure(sentry_data)
+		room.add_child(sentry)
+		sentry.body_entered.connect(_on_hazard_body)
+		sentries.append(sentry)
 	for spark_index: int in range(collected.size()):
 		_add_spark(level["shards"][spark_index], spark_index)
+	if level["checkpoint"] != Vector2.ZERO:
+		var checkpoint: Area2D = _make_area(level["checkpoint"], Vector2(88, 106), 2)
+		checkpoint.body_entered.connect(_on_checkpoint_body)
 	if level["pad"] != Vector2.ZERO:
 		_add_pad(level["pad"])
 		cargo = CARGO_SCRIPT.new() as CompassCargo
@@ -126,6 +145,7 @@ func _load_level(index: int) -> void:
 	world.phase = phase
 	world.collected = collected.duplicate()
 	world.pad_armed = false
+	world.checkpoint_active = false
 	world.door_open = false
 	world.gravity_direction = gravity_direction
 	hud.set_hint(level["hint"])
@@ -180,10 +200,50 @@ func _make_area(pos: Vector2, size: Vector2, mask: int) -> Area2D:
 
 
 func _on_hazard_body(body: Node2D) -> void:
-	if body == pilot and playing:
+	if body == pilot and playing and not respawning:
+		respawning = true
+		pilot.control_enabled = false
 		deaths += 1
 		_play_sound("hit")
-		_restart()
+		call_deferred("_respawn")
+
+
+func _on_checkpoint_body(body: Node2D) -> void:
+	if body != pilot or not playing or checkpoint_active:
+		return
+	checkpoint_active = true
+	respawn_position = level["checkpoint"]
+	world.checkpoint_active = true
+	hud.set_hint("Beacon lit. Collected sparks are safe after a hit.")
+	_play_sound("spark")
+	print("COMPASSFALL_BEACON ", level_index)
+
+
+func _respawn() -> void:
+	if not is_instance_valid(pilot):
+		return
+	gravity_direction = Vector2.DOWN
+	phase = 0
+	pilot.set_gravity_direction(gravity_direction)
+	pilot.position = respawn_position
+	pilot.velocity = Vector2.ZERO
+	pilot.jump_buffer = 0.0
+	pilot.touch_jump = false
+	pilot.reset_physics_interpolation()
+	pilot.control_enabled = playing
+	last_shift = -1.0
+	if is_instance_valid(cargo):
+		cargo.gravity_direction = gravity_direction
+	for bridge: CollisionShape2D in bridges:
+		bridge.set_deferred("disabled", true)
+	world.phase = phase
+	world.gravity_direction = gravity_direction
+	world.shift_origin = respawn_position
+	world.shift_age = 0.0
+	for sentry: CompassSentry in sentries:
+		sentry.freeze_for(0.7)
+	respawning = false
+	_update_hud()
 
 
 func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
@@ -226,6 +286,8 @@ func _shift(step: int) -> void:
 	if is_instance_valid(cargo):
 		cargo.gravity_direction = gravity_direction
 		cargo.sleeping = false
+	for sentry: CompassSentry in sentries:
+		sentry.freeze_for(0.55)
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
 	world.phase = phase
@@ -241,10 +303,12 @@ func _advance() -> void:
 	_play_sound("door")
 	playing = false
 	pilot.control_enabled = false
+	for sentry: CompassSentry in sentries:
+		sentry.active = false
 	if level_index + 1 >= CompassLevels.count():
 		finished = true
 		print("COMPASSFALL_WIN")
-		hud.show_panel("THE STATION WAKES", "You carried the light through every shift.\n\nTime %s  •  Turns %d  •  Restarts %d\n\nThe dawn shift is yours." % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
+		hud.show_panel("THE STATION WAKES", "You carried the light through every shift.\n\nTime %s  •  Turns %d  •  Hits %d\n\nThe dawn shift is yours." % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
 		return
 	_load_level(level_index + 1)
 	hud.show_panel(level["name"], level["hint"] + "\n\nThree sparks open the door. Cargo plates must be armed too.", "ENTER ROOM")
@@ -254,6 +318,8 @@ func _restart() -> void:
 	_load_level(level_index)
 	playing = true
 	pilot.control_enabled = true
+	for sentry: CompassSentry in sentries:
+		sentry.active = true
 	hud.hide_panel()
 	print("COMPASSFALL_START ", level_index)
 
@@ -263,6 +329,8 @@ func _on_pause() -> void:
 		return
 	playing = false
 	pilot.control_enabled = false
+	for sentry: CompassSentry in sentries:
+		sentry.active = false
 	hud.show_panel("SHIFT PAUSED", "The station will wait for you.", "RESUME")
 
 
@@ -275,6 +343,8 @@ func _on_begin() -> void:
 		_load_level(0)
 	playing = true
 	pilot.control_enabled = true
+	for sentry: CompassSentry in sentries:
+		sentry.active = true
 	hud.hide_panel()
 	print("COMPASSFALL_START ", level_index)
 

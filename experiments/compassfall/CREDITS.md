@@ -1,6 +1,6 @@
 # Credits
 
-Compassfall's pilot sprites were designed and rendered for this project in Blender with `tools/render_pilot.py`.
+Compassfall's pilot and clockwork sentry sprites were designed and rendered for this project in Blender with `tools/render_pilot.py` and `tools/render_sentry.py`.
 The clockwork rooms, interface and effects are drawn in Godot for this project.
 The sound effects were synthesized for this project with `tools/make_sound.py`.
 No third-party art, music, fonts or sound effects are included.

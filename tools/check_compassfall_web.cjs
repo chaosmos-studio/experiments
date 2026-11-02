@@ -28,6 +28,7 @@ async function main() {
     let marker = page.waitForEvent('console', { predicate: message => message.text().includes('COMPASSFALL_START 0'), timeout: 10000 });
     await page.touchscreen.tap(422, 277);
     await marker;
+    await page.waitForTimeout(600);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 120, y: 355, id: 0 }] });
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('COMPASSFALL_JUMP'), timeout: 10000 });

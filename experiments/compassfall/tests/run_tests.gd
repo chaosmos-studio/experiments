@@ -61,6 +61,36 @@ func _test_compassfall_playthrough() -> void:
 	for level_number: int in range(CompassLevels.count()):
 		if level_number > 0:
 			game._on_begin()
+		if level_number == 1:
+			var sentry_start: Vector2 = game.sentries[0].position
+			for frame: int in range(12):
+				await physics_frame
+			_check("the clock eye patrols its track", game.sentries[0].position.distance_to(sentry_start) > 10.0)
+			game.pilot.position = game.level["checkpoint"]
+			game.pilot.velocity = Vector2.ZERO
+			game.pilot.reset_physics_interpolation()
+			await physics_frame
+			await physics_frame
+			_check("the beacon activates when the pilot reaches it", game.checkpoint_active)
+			game.last_shift = -1.0
+			game._shift(1)
+			await process_frame
+			_check("shifting pauses the clock eye", game.sentries[0].freeze_remaining > 0.0 and not game.sentries[0].monitoring)
+			game.pilot.position = game.level["shards"][0]
+			game.pilot.velocity = Vector2.ZERO
+			game.pilot.reset_physics_interpolation()
+			await physics_frame
+			await physics_frame
+			await physics_frame
+			await physics_frame
+			_check("a spark is collected before a hazard hit", game.collected[0])
+			game.pilot.position = game.level["hazards"][0].get_center() + Vector2(0, -25)
+			game.pilot.velocity = Vector2.ZERO
+			game.pilot.reset_physics_interpolation()
+			await physics_frame
+			await physics_frame
+			await process_frame
+			_check("a hazard sends the pilot to the beacon and keeps sparks", game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
 		for spark: Vector2 in game.level["shards"]:
 			game.pilot.position = spark
 			game.pilot.velocity = Vector2.ZERO

@@ -10,8 +10,12 @@ func _ready() -> void:
 	var out_name: String = args[2] if args.size() > 2 else "shot"
 	var scene: Node = load(scene_path).instantiate()
 	add_child(scene)
-	if args.size() > 3 and args[3] == "start":
-		scene._on_begin()
+	if args.size() > 3:
+		if args[3] == "start":
+			scene._on_begin()
+		elif args[3].begins_with("room="):
+			scene._load_level(int(args[3].trim_prefix("room=")))
+			scene._on_begin()
 	for i: int in range(frames):
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw

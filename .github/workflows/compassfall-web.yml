@@ -46,7 +46,8 @@ jobs:
           godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/compassfall-import.log"
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/compassfall-import.log"
           godot --headless --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/compassfall-tests.log"
-          grep -q '36 passed, 0 failed' "$RUNNER_TEMP/compassfall-tests.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/compassfall-tests.log"
+          grep -q '41 passed, 0 failed' "$RUNNER_TEMP/compassfall-tests.log"
           godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/compassfall-export.log"
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/compassfall-export.log"
           grep -aq ECFG build/web/index.pck

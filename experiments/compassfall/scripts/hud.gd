@@ -32,10 +32,10 @@ func _ready() -> void:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bar)
 	title_label = _label(Vector2(150, 35), Vector2(1130, 52), 36, Color("fff6df"))
-	progress_label = _label(Vector2(150, 82), Vector2(1280, 40), 25, Color("ccebe0"))
+	progress_label = _label(Vector2(150, 82), Vector2(1280, 40), 32, Color("ccebe0"))
 	gravity_label = _label(Vector2(1450, 45), Vector2(330, 60), 34, Color("ffda91"))
 	gravity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint_label = _label(Vector2(270, 160), Vector2(1380, 64), 28, Color("31565e"))
+	hint_label = _label(Vector2(270, 160), Vector2(1380, 64), 34, Color("31565e"))
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_button("LEFT", Vector2(54, 943), Vector2(124, 104), Color("246370"), func() -> void: move_pressed.emit(-1.0), func() -> void: move_pressed.emit(0.0))
 	_button("RIGHT", Vector2(193, 943), Vector2(124, 104), Color("246370"), func() -> void: move_pressed.emit(1.0), func() -> void: move_pressed.emit(0.0))
@@ -46,6 +46,7 @@ func _ready() -> void:
 	var instructions: Label = _label(Vector2(400, 965), Vector2(940, 42), 20, Color("49656a"))
 	instructions.text = "A / D move     SPACE jump     Q / E shift     R restart"
 	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instructions.visible = DisplayServer.window_get_size().x >= 1000
 	_build_panel()
 
 
@@ -154,7 +155,7 @@ func _build_panel() -> void:
 	panel_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel_body.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	panel_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel_body.add_theme_font_size_override("font_size", 31)
+	panel_body.add_theme_font_size_override("font_size", 36)
 	panel_body.add_theme_color_override("font_color", Color("3b5f62"))
 	card.add_child(panel_body)
 	panel_button = Button.new()

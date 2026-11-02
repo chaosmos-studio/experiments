@@ -7,6 +7,8 @@ Jumping pushes against gravity.
 
 The cargo applies force along the same gravity vector each physics frame.
 Light bridge collisions swap state on each shift.
+Each clock eye moves between authored endpoints with a sine curve.
+A gravity shift pauses its patrol and contact hazard briefly, which creates a safe crossing window.
 The pilot keeps a short jump buffer and coyote window so a button press near an edge still feels responsive.
 
 The current movement constants and their actual behavior live in `scripts/player.gd` and `scripts/cargo.gd`.

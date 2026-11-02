@@ -5,6 +5,7 @@ var level: Dictionary = {}
 var phase: int = 0
 var collected: Array[bool] = []
 var pad_armed: bool = false
+var checkpoint_active: bool = false
 var door_open: bool = false
 var time: float = 0.0
 var gravity_direction: Vector2 = Vector2.DOWN
@@ -24,12 +25,14 @@ func _draw() -> void:
 	_draw_room()
 	if level.is_empty():
 		return
-	_draw_gear(Vector2(960, 538), 176, time * 0.18, Color("d6e4d8"))
-	_draw_gear(Vector2(1655, 332), 62, -time * 0.48, Color("e0dfcf"))
+	var accent: Color = level["accent"]
+	_draw_gear(Vector2(960, 538), 176, time * 0.18, Color("d6e4d8").lerp(accent, 0.22))
+	_draw_gear(Vector2(1655, 332), 62, -time * 0.48, Color("e0dfcf").lerp(accent, 0.18))
 	for wall: Rect2 in level["walls"]:
 		_draw_wall(wall)
 	for bridge: Rect2 in level["phase_walls"]:
 		_draw_bridge(bridge)
+	_draw_sentry_tracks()
 	for hazard: Rect2 in level["hazards"]:
 		_draw_hazard(hazard)
 	for index: int in range(collected.size()):
@@ -37,6 +40,8 @@ func _draw() -> void:
 			_draw_shard(level["shards"][index], index)
 	if level["pad"] != Vector2.ZERO:
 		_draw_pad(level["pad"])
+	if level["checkpoint"] != Vector2.ZERO:
+		_draw_checkpoint(level["checkpoint"])
 	_draw_door(level["exit"])
 	_draw_motes()
 	if shift_age < 0.55:
@@ -57,16 +62,18 @@ func _draw_sky() -> void:
 
 
 func _draw_room() -> void:
+	var accent: Color = level.get("accent", Color("25b7b3"))
 	draw_rect(Rect2(85, 145, 1750, 800), Color("d2dbcd"), true)
 	draw_rect(Rect2(105, 165, 1710, 760), Color("fcfbf4"), true)
+	draw_rect(Rect2(105, 165, 1710, 760), Color(accent, 0.025), true)
 	for x: int in range(230, 1790, 230):
 		draw_line(Vector2(x, 199), Vector2(x, 898), Color("ebeee4"), 3.0)
 	for y: int in range(293, 900, 125):
 		draw_line(Vector2(140, y), Vector2(1780, y), Color("eef0e7"), 3.0)
 	for index: int in range(6):
 		var cx: float = 250.0 + index * 280.0
-		draw_circle(Vector2(cx, 540), 98, Color("e3eee9"))
-		draw_circle(Vector2(cx, 540), 80, Color("e7f5f1"))
+		draw_circle(Vector2(cx, 540), 98, Color("e3eee9").lerp(accent, 0.12))
+		draw_circle(Vector2(cx, 540), 80, Color("e7f5f1").lerp(accent, 0.07))
 		draw_circle(Vector2(cx + 24, 528), 35, Color("f6f8ed"))
 	draw_rect(Rect2(110, 168, 1700, 760), Color("b9c9bd"), false, 7.0)
 
@@ -105,6 +112,30 @@ func _draw_hazard(area: Rect2) -> void:
 			Vector2(x + 11, area.position.y),
 		])
 		draw_colored_polygon(points, Color("f16a54"))
+
+
+func _draw_sentry_tracks() -> void:
+	for data: Dictionary in level["sentries"]:
+		var from: Vector2 = data["from"]
+		var to: Vector2 = data["to"]
+		draw_line(from, to, Color("c4d4ce", 0.8), 5.0)
+		draw_circle(from, 9, Color("9db9af"))
+		draw_circle(to, 9, Color("9db9af"))
+
+
+func _draw_checkpoint(pos: Vector2) -> void:
+	var accent: Color = level["accent"]
+	var glow: float = 0.18 + 0.08 * sin(time * 5.0)
+	draw_line(pos + Vector2(0, 30), pos + Vector2(0, 69), Color("476b70"), 15.0)
+	draw_rect(Rect2(pos.x - 33, pos.y + 65, 66, 12), Color("476b70"), true)
+	draw_circle(pos, 50, Color(accent, glow if checkpoint_active else glow * 0.45))
+	draw_arc(pos, 35, 0.0, TAU, 40, accent if checkpoint_active else Color("93aaa5"), 7.0, true)
+	var crystal: PackedVector2Array = PackedVector2Array([
+		pos + Vector2(0, -27), pos + Vector2(18, 0), pos + Vector2(0, 27), pos + Vector2(-18, 0),
+	])
+	draw_colored_polygon(crystal, Color("f8d17e") if checkpoint_active else Color("b8c7bd"))
+	if checkpoint_active:
+		draw_line(pos + Vector2(0, -19), pos + Vector2(0, 19), Color("fff9d9"), 5.0)
 
 
 func _draw_shard(point: Vector2, index: int) -> void:
