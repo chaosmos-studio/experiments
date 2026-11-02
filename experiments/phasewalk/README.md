@@ -2,6 +2,7 @@
 
 A draft for the Game Off 2026 theme SHIFT.
 Cross each board by moving between two versions of the same room.
+[Play in a browser](https://chaosmos.studio/experiments/phasewalk/).
 
 Run with Godot 4.7:
 

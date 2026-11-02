@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="phasewalk-version" content="1">
+<meta name="theme-color" content="#172136">
+<link rel="icon" href="data:,">
+<title>Phasewalk | Chaosmos</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172136;color:#f4f0e7;font:16px system-ui,sans-serif}
+canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#172136;text-align:center;padding:24px}
+#loading[hidden]{display:none}
+h1{font-size:32px;letter-spacing:.12em;margin:0 0 20px}
+progress{width:min(240px,80vw);height:8px;accent-color:#f1b67b}
+#error{max-width:28em;white-space:pre-wrap}
+button{border:1px solid #f1b67b;background:transparent;color:#f1b67b;padding:12px 20px;font:inherit}
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Phasewalk game. Use the on-screen controls to move and shift reality.">Canvas is required to play Phasewalk.</canvas>
+<div id="loading" role="status"><div><h1>PHASEWALK</h1><p id="status">Opening the board...</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<noscript>Enable JavaScript to play Phasewalk.</noscript>
+<script src="wasm-loader.js"></script>
+<script src="$GODOT_URL"></script>
+<script>
+const engine = new Engine($GODOT_CONFIG);
+const loading = document.getElementById('loading');
+function fail(error) {
+  document.getElementById('status').textContent = 'The board could not open.';
+  document.getElementById('error').textContent = String(error);
+  document.getElementById('progress').hidden = true;
+  document.getElementById('retry').hidden = false;
+}
+const missing = Engine.getMissingFeatures({threads: false});
+if (missing.length) {
+  fail('This browser needs WebGL 2 and WebAssembly: ' + missing.join(', '));
+} else {
+  engine.startGame({canvas: document.getElementById('canvas'), onProgress: (current, total) => {
+    if (total > 0) document.getElementById('progress').value = current / total;
+  }}).then(() => { loading.hidden = true; document.getElementById('canvas').focus(); }).catch(fail);
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 extends Control
 
 const Board = preload("res://scripts/board.gd")
+const FONT: Font = preload("res://assets/fonts/Manrope.ttf")
 const PAPER: Color = Color("f0ebdc")
 const INK: Color = Color("243442")
 const MUTED: Color = Color("75838b")
@@ -85,7 +86,7 @@ func _turn(axis: String, index: int, direction: int) -> void:
 	if board.turn(axis, index, direction):
 		_refresh()
 	else:
-		_show_notice("Already aligned. Try the next board.")
+		_show_notice("Line already aligned.")
 
 
 func _advance() -> void:
@@ -93,12 +94,13 @@ func _advance() -> void:
 		board.reset(board.level + 1)
 		_refresh()
 	else:
-		_show_notice("All patterns aligned. Try another draft.")
+		_show_notice("All patterns aligned.")
 
 
 func _refresh() -> void:
 	notice = ""
 	notice_time = 0.0
+	print("ROWSHIFT_MOVES %d" % board.moves)
 	queue_redraw()
 
 
@@ -120,7 +122,7 @@ func _draw() -> void:
 	draw_set_transform(offset, 0.0, Vector2.ONE * scale_factor)
 	draw_rect(Rect2(0.0, 0.0, 720.0, 960.0), PAPER)
 	_text("ROWSHIFT", Vector2(70.0, 92.0), 48, INK)
-	_text("BOARD %d       MOVES %d" % [board.level + 1, board.moves], Vector2(70.0, 141.0), 21, MUTED)
+	_text("BOARD %d       MOVES %d" % [board.level + 1, board.moves], Vector2(70.0, 141.0), 27, MUTED)
 	for row: int in Board.SIZE:
 		var y: float = BOARD_ORIGIN.y + float(row) * CELL
 		_button(Rect2(72.0, y + 9.0, 86.0, 72.0), "<")
@@ -142,21 +144,21 @@ func _draw() -> void:
 			if stone > 0:
 				draw_circle(center, 21.0, STONES[stone])
 				draw_circle(center - Vector2(6.0, 6.0), 4.0, PAPER)
-	_text("Shift a whole line. The stones wrap around.", Vector2(70.0, 743.0), 19, INK)
+	_text("Tap arrows to slide a line.", Vector2(70.0, 743.0), 26, INK)
 	_button(Rect2(70.0, 760.0, 180.0, 72.0), "UNDO")
 	_button(Rect2(470.0, 760.0, 180.0, 72.0), "RETRY")
 	if board.won():
 		_button(Rect2(240.0, 760.0, 240.0, 72.0), "NEXT")
-	_text(notice if notice_time > 0.0 else "Match every stone to its colored ring.", Vector2(70.0, 887.0), 21, INK)
+	_text(notice if notice_time > 0.0 else "Match stones to their colored rings.", Vector2(70.0, 887.0), 27, INK)
 	draw_set_transform(Vector2.ZERO)
 
 
 func _text(value: String, at: Vector2, font_size: int, color: Color) -> void:
-	draw_string(ThemeDB.fallback_font, at, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+	draw_string(FONT, at, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 
 func _button(rect: Rect2, label: String) -> void:
 	draw_rect(rect, INK)
 	draw_rect(rect.grow(-3.0), PAPER)
-	var width: float = ThemeDB.fallback_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-	_text(label, Vector2(rect.position.x + (rect.size.x - width) * 0.5, rect.position.y + rect.size.y * 0.62), 20, INK)
+	var width: float = FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	_text(label, Vector2(rect.position.x + (rect.size.x - width) * 0.5, rect.position.y + rect.size.y * 0.62), 26, INK)

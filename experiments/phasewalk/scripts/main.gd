@@ -1,6 +1,7 @@
 extends Control
 
 const Board = preload("res://scripts/board.gd")
+const FONT: Font = preload("res://assets/fonts/Manrope.ttf")
 const INK: Color = Color("172136")
 const LIGHT: Color = Color("f4f0e7")
 const DAWN: Color = Color("f1b67b")
@@ -93,9 +94,9 @@ func _try_shift() -> void:
 	if board.shift():
 		_refresh()
 	elif board.shifts >= Board.SHIFT_BUDGETS[board.level]:
-		_show_notice("No shifts left. Retry this board.")
+		_show_notice("No shifts left. Tap Retry.")
 	else:
-		_show_notice("You cannot shift inside a wall.")
+		_show_notice("Shift only on open cells.")
 
 
 func _advance() -> void:
@@ -103,12 +104,13 @@ func _advance() -> void:
 		board.reset(board.level + 1)
 		_refresh()
 	else:
-		_show_notice("All corridors crossed. Try another draft.")
+		_show_notice("All corridors crossed.")
 
 
 func _refresh() -> void:
 	notice = ""
 	notice_time = 0.0
+	print("PHASEWALK_STATE %d %d" % [board.phase, board.shifts])
 	queue_redraw()
 
 
@@ -134,8 +136,8 @@ func _draw() -> void:
 	var accent: Color = DAWN if is_dawn else DUSK
 	draw_rect(Rect2(0.0, 0.0, 720.0, 960.0), background)
 	_text("PHASEWALK", Vector2(70.0, 96.0), 45, foreground)
-	_text("BOARD %d     %s REALITY" % [board.level + 1, "DAWN" if is_dawn else "DUSK"], Vector2(70.0, 153.0), 22, accent)
-	_text("Shifts: %d / %d" % [board.shifts, Board.SHIFT_BUDGETS[board.level]], Vector2(70.0, 192.0), 23, foreground)
+	_text("BOARD %d     %s REALITY" % [board.level + 1, "DAWN" if is_dawn else "DUSK"], Vector2(70.0, 153.0), 27, accent)
+	_text("Shifts: %d / %d" % [board.shifts, Board.SHIFT_BUDGETS[board.level]], Vector2(70.0, 192.0), 28, foreground)
 	_button(Rect2(555.0, 52.0, 108.0, 64.0), "RETRY", foreground, background)
 	var current: PackedStringArray = board.walls(board.phase)
 	var other: PackedStringArray = board.walls(1 - board.phase)
@@ -153,7 +155,7 @@ func _draw() -> void:
 	var player_center: Vector2 = BOARD_ORIGIN + (Vector2(board.position) + Vector2(0.5, 0.5)) * CELL
 	draw_circle(player_center, 25.0, foreground)
 	draw_circle(player_center, 10.0, accent)
-	_text("Open cells change when you shift.", Vector2(70.0, 757.0), 20, foreground)
+	_text("Open cells change when you shift.", Vector2(70.0, 757.0), 26, foreground)
 	if board.won():
 		_button(Rect2(180.0, 790.0, 360.0, 84.0), "NEXT BOARD" if board.level < 2 else "FINISHED", accent, background)
 	else:
@@ -162,16 +164,16 @@ func _draw() -> void:
 		_button(Rect2(308.0, 786.0, 104.0, 88.0), "DOWN", foreground, background)
 		_button(Rect2(428.0, 786.0, 104.0, 88.0), "RIGHT", foreground, background)
 		_button(Rect2(548.0, 786.0, 104.0, 88.0), "SHIFT", accent, background)
-	_text(notice if notice_time > 0.0 else "Arrows move. Space shifts. Reach the gold ring.", Vector2(70.0, 921.0), 19, foreground)
+	_text(notice if notice_time > 0.0 else "Tap arrows and shift to reach the gold ring.", Vector2(70.0, 921.0), 25, foreground)
 	draw_set_transform(Vector2.ZERO)
 
 
 func _text(value: String, at: Vector2, font_size: int, color: Color) -> void:
-	draw_string(ThemeDB.fallback_font, at, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+	draw_string(FONT, at, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 
 func _button(rect: Rect2, label: String, border: Color, fill: Color) -> void:
 	draw_rect(rect, border)
 	draw_rect(rect.grow(-3.0), fill)
-	var width: float = ThemeDB.fallback_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-	_text(label, Vector2(rect.position.x + (rect.size.x - width) * 0.5, rect.position.y + rect.size.y * 0.63), 20, border)
+	var width: float = FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	_text(label, Vector2(rect.position.x + (rect.size.x - width) * 0.5, rect.position.y + rect.size.y * 0.63), 26, border)

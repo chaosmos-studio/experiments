@@ -2,6 +2,7 @@
 
 A draft for the Game Off 2026 theme SHIFT.
 Slide whole rows and columns until the colored stones match their rings.
+[Play in a browser](https://chaosmos.studio/experiments/rowshift/).
 
 Run with Godot 4.7:
 

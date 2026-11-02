@@ -9,8 +9,8 @@ Each one is a standalone Godot project under `experiments/`.
 
 Game Off 2026 drafts for the theme SHIFT:
 
-- [Phasewalk](experiments/phasewalk/), switch between two versions of a room to cross blocked paths.
-- [Rowshift](experiments/rowshift/), slide rows and columns to match four stones with their marks.
+- [Phasewalk](experiments/phasewalk/), switch between two versions of a room to cross blocked paths. [Play on the web](https://chaosmos.studio/experiments/phasewalk/)
+- [Rowshift](experiments/rowshift/), slide rows and columns to match four stones with their marks. [Play on the web](https://chaosmos.studio/experiments/rowshift/)
 
 Pyxis, first called Filament, started here and graduated to its own repo, [chaosmos-studio/pyxis](https://github.com/chaosmos-studio/pyxis).
 The games in development, Ripple, Hako, Rinse and Corona, each have their own repo (`chaosmos-studio/<name>`) and publish to `chaosmos.studio/experiments/<name>/` themselves.
@@ -38,4 +38,4 @@ npx playwright test
 ```
 
 Every code push to `main` runs the checks for the three earlier experiments and publishes them to chaosmos.studio.
-The Game Off drafts are local Godot projects until a concept is selected for a web release.
+The Game Off drafts publish from their own workflow to the studio site's GitHub Pages branch.
