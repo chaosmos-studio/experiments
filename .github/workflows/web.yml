@@ -94,6 +94,7 @@ jobs:
       - name: Test desktop and mobile browsers
         run: |
           npm ci
+          npx playwright install ffmpeg
           export CHROME_PATH="$(command -v google-chrome)"
           npx playwright test
       - name: Keep Hinge Grove review frames
