@@ -120,7 +120,7 @@ func _draw() -> void:
 	draw_set_transform(offset, 0.0, Vector2.ONE * scale_factor)
 	draw_rect(Rect2(0.0, 0.0, 720.0, 960.0), PAPER)
 	_text("ROWSHIFT", Vector2(70.0, 92.0), 48, INK)
-	_text("BOARD %d / 3       MOVES %d" % [board.level + 1, board.moves], Vector2(70.0, 141.0), 21, MUTED)
+	_text("BOARD %d       MOVES %d" % [board.level + 1, board.moves], Vector2(70.0, 141.0), 21, MUTED)
 	for row: int in Board.SIZE:
 		var y: float = BOARD_ORIGIN.y + float(row) * CELL
 		_button(Rect2(72.0, y + 9.0, 86.0, 72.0), "<")

@@ -134,7 +134,7 @@ func _draw() -> void:
 	var accent: Color = DAWN if is_dawn else DUSK
 	draw_rect(Rect2(0.0, 0.0, 720.0, 960.0), background)
 	_text("PHASEWALK", Vector2(70.0, 96.0), 45, foreground)
-	_text("BOARD %d / 3     %s REALITY" % [board.level + 1, "DAWN" if is_dawn else "DUSK"], Vector2(70.0, 153.0), 22, accent)
+	_text("BOARD %d     %s REALITY" % [board.level + 1, "DAWN" if is_dawn else "DUSK"], Vector2(70.0, 153.0), 22, accent)
 	_text("Shifts: %d / %d" % [board.shifts, Board.SHIFT_BUDGETS[board.level]], Vector2(70.0, 192.0), 23, foreground)
 	_button(Rect2(555.0, 52.0, 108.0, 64.0), "RETRY", foreground, background)
 	var current: PackedStringArray = board.walls(board.phase)
