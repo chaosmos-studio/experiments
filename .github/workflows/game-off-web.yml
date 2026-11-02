@@ -6,16 +6,22 @@ on:
       - .github/workflows/game-off-web.yml
       - experiments/phasewalk/**
       - experiments/rowshift/**
+      - experiments/flipline/**
+      - experiments/timefall/**
       - tools/prepare_web.py
       - tools/check_web.cjs
+      - tools/make_action_sfx.py
   push:
     branches: [main]
     paths:
       - .github/workflows/game-off-web.yml
       - experiments/phasewalk/**
       - experiments/rowshift/**
+      - experiments/flipline/**
+      - experiments/timefall/**
       - tools/prepare_web.py
       - tools/check_web.cjs
+      - tools/make_action_sfx.py
   workflow_dispatch:
 
 permissions:
@@ -61,10 +67,10 @@ jobs:
             unzip -j -q -o "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" 'templates/web_nothreads_*' 'templates/version.txt' -d "$template_dir"
             rm -f "$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           fi
-      - name: Import, play through, and export both drafts
+      - name: Import, play through, and export the drafts
         run: |
           set -euo pipefail
-          for game in phasewalk rowshift; do
+          for game in phasewalk rowshift flipline timefall; do
             cd "experiments/$game"
             mkdir -p build/web
             touch build/.gdignore
@@ -88,6 +94,8 @@ jobs:
           export CHROME_PATH="$(command -v google-chrome)"
           node tools/check_web.cjs phasewalk
           node tools/check_web.cjs rowshift
+          node tools/check_web.cjs flipline
+          node tools/check_web.cjs timefall
       - name: Upload phone screenshots
         if: always()
         continue-on-error: true
@@ -121,3 +129,27 @@ jobs:
           force: false
           attempt-limit: 10
           commit-message: Publish Rowshift
+      - name: Publish Flipline
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/flipline/build/web
+          target-folder: experiments/flipline
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Flipline
+      - name: Publish Timefall
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/timefall/build/web
+          target-folder: experiments/timefall
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Timefall
