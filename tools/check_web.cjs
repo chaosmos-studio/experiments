@@ -5,7 +5,19 @@ const { chromium } = require('../experiments/rivet/node_modules/playwright');
 
 async function run() {
   const game = process.argv[2];
-  if (!['phasewalk', 'rowshift'].includes(game)) throw new Error('Choose phasewalk or rowshift');
+  const checks = {
+    phasewalk: [{x: 325, y: 610, marker: 'PHASEWALK_STATE 1 1'}],
+    rowshift: [{x: 328, y: 330, marker: 'ROWSHIFT_MOVES 1'}],
+    flipline: [
+      {x: 190, y: 450, marker: 'FLIPLINE_START'},
+      {x: 190, y: 450, marker: 'FLIPLINE_SHIFT 0'}
+    ],
+    timefall: [
+      {x: 190, y: 450, marker: 'TIMEFALL_START'},
+      {x: 286, y: 720, marker: 'TIMEFALL_SHIFT 1'}
+    ]
+  };
+  if (!checks[game]) throw new Error('Choose a Game Off draft');
   const project = path.resolve(__dirname, '..', 'experiments', game);
   const web = path.join(project, 'build', 'web');
   const server = spawn('python3', ['-m', 'http.server', '8765', '--directory', web], {
@@ -37,14 +49,32 @@ async function run() {
       return document.getElementById('loading')?.hidden || !document.getElementById('retry')?.hidden;
     }, null, {timeout: 90000});
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
-    const tap = game === 'phasewalk' ? {x: 325, y: 610} : {x: 328, y: 330};
-    const expected = game === 'phasewalk' ? 'PHASEWALK_STATE 1 1' : 'ROWSHIFT_MOVES 1';
-    const action = page.waitForEvent('console', {
-      predicate: message => message.text().includes(expected),
-      timeout: 10000
-    });
-    await page.touchscreen.tap(tap.x, tap.y);
-    await action;
+    for (const step of checks[game]) {
+      const action = page.waitForEvent('console', {
+        predicate: message => message.text().includes(step.marker),
+        timeout: 10000
+      });
+      await page.touchscreen.tap(step.x, step.y);
+      await action;
+    }
+    if (game === 'flipline') {
+      await page.waitForEvent('console', {predicate: message => message.text().includes('FLIPLINE_SCORE 1'), timeout: 10000});
+      await page.waitForEvent('console', {predicate: message => message.text().includes('FLIPLINE_CRASH'), timeout: 10000});
+      const restart = page.waitForEvent('console', {predicate: message => message.text().includes('FLIPLINE_START'), timeout: 10000});
+      await page.touchscreen.tap(190, 450);
+      await restart;
+    }
+    if (game === 'timefall') {
+      await page.waitForEvent('console', {predicate: message => message.text().includes('TIMEFALL_SCORE 1'), timeout: 10000});
+      const steer = page.waitForEvent('console', {predicate: message => message.text().includes('TIMEFALL_STEER'), timeout: 10000});
+      await page.touchscreen.tap(300, 390);
+      await steer;
+      await page.waitForEvent('console', {predicate: message => message.text().includes('TIMEFALL_SCORE 2'), timeout: 10000});
+      await page.waitForEvent('console', {predicate: message => message.text().includes('TIMEFALL_CRASH'), timeout: 10000});
+      const restart = page.waitForEvent('console', {predicate: message => message.text().includes('TIMEFALL_START'), timeout: 10000});
+      await page.touchscreen.tap(190, 450);
+      await restart;
+    }
     if (errors.length) throw new Error(errors.join('\n'));
     await mkdir(path.join(project, 'test-results'), {recursive: true});
     await page.screenshot({path: path.join(project, 'test-results', 'mobile.png')});
