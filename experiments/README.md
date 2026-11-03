@@ -1,5 +1,6 @@
 # Experiments
 
+- [Palewheel 96](palewheel-96/), a late-90s pixel-art gravity platformer for comparison with [Palewheel](https://chaosmos.studio/palewheel/). [Play](https://chaosmos.studio/experiments/palewheel-96/)
 - [Hinge Grove](hinge-grove/), [play](https://chaosmos.studio/experiments/hinge-grove/)
 - [Tessera](tessera/), [play](https://chaosmos.studio/experiments/tessera/)
 - [Rivet](rivet/), [play](https://chaosmos.studio/experiments/rivet/)

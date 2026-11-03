@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="palewheel-version" content="96-1">
+<meta name="theme-color" content="#17142b">
+<link rel="icon" href="data:,">
+<title>Palewheel 96 | Chaosmos</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17142b;color:#fff0bc;font:16px monospace}
+canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#17142b;text-align:center;padding:24px}
+#loading[hidden]{display:none}
+h1{font-size:32px;letter-spacing:.12em;margin:0 0 20px}
+progress{width:min(240px,80vw);height:12px;accent-color:#eaa250}
+#error{max-width:28em;white-space:pre-wrap}
+button{border:3px solid #fff0bc;background:#eaa250;color:#17142b;padding:12px 20px;font:700 16px monospace}
+#rotate{display:none;position:fixed;inset:0;align-items:center;justify-content:center;padding:32px;background:#17142b;color:#fff0bc;text-align:center;font-size:22px;z-index:3}
+@media (orientation:portrait){#rotate{display:flex}}
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Palewheel 96. Run, jump and turn gravity to guide the mechanic through the engine.">Canvas is required to play Palewheel 96.</canvas>
+<div id="rotate">Turn your phone sideways to play Palewheel 96.</div>
+<div id="loading" role="status"><div><h1>PALEWHEEL 96</h1><p id="status">Waking the turbine...</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<noscript>Enable JavaScript to play Palewheel 96.</noscript>
+<script src="wasm-loader.js"></script>
+<script src="$GODOT_URL"></script>
+<script>
+const engine = new Engine($GODOT_CONFIG);
+const loading = document.getElementById('loading');
+function fail(error) {
+  document.getElementById('status').textContent = 'The engine could not start.';
+  document.getElementById('error').textContent = String(error);
+  document.getElementById('progress').hidden = true;
+  document.getElementById('retry').hidden = false;
+}
+const missing = Engine.getMissingFeatures({threads: false});
+if (missing.length) {
+  fail('This browser needs WebGL 2 and WebAssembly: ' + missing.join(', '));
+} else {
+  engine.startGame({canvas: document.getElementById('canvas'), onProgress: (current, total) => {
+    if (total > 0) document.getElementById('progress').value = current / total;
+  }}).then(() => { loading.hidden = true; document.getElementById('canvas').focus(); }).catch(fail);
+}
+</script>
+</body>
+</html>
