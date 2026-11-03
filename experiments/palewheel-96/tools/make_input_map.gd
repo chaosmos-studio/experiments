@@ -13,12 +13,11 @@ static func bindings() -> Dictionary:
 	return {
 		"move_left": [_key(KEY_A), _key(KEY_LEFT), _axis(JOY_AXIS_LEFT_X, -1.0)],
 		"move_right": [_key(KEY_D), _key(KEY_RIGHT), _axis(JOY_AXIS_LEFT_X, 1.0)],
-		"move_up": [_key(KEY_W), _key(KEY_UP), _axis(JOY_AXIS_LEFT_Y, -1.0)],
-		"move_down": [_key(KEY_S), _key(KEY_DOWN), _axis(JOY_AXIS_LEFT_Y, 1.0)],
-		"jump": [_key(KEY_SPACE), _button(JOY_BUTTON_A)],
-		"action": [_mouse(MOUSE_BUTTON_LEFT), _key(KEY_E), _button(JOY_BUTTON_X)],
+		"jump": [_key(KEY_W), _key(KEY_UP), _key(KEY_SPACE), _button(JOY_BUTTON_A)],
+		"crouch": [_key(KEY_S), _key(KEY_DOWN), _button(JOY_BUTTON_B)],
+		"shift_gravity": [_key(KEY_SHIFT), _button(JOY_BUTTON_X)],
 		"pause": [_key(KEY_ESCAPE), _key(KEY_P), _button(JOY_BUTTON_START)],
-		"retry": [_key(KEY_R), _key(KEY_ENTER)],
+		"retry": [_key(KEY_R)],
 		"debug_toggle": [_key(KEY_F3)],
 	}
 
@@ -44,11 +43,6 @@ func _initialize() -> void:
 static func _key(code: Key) -> InputEventKey:
 	var event: InputEventKey = InputEventKey.new()
 	event.physical_keycode = code
-	return event
-
-static func _mouse(button: MouseButton) -> InputEventMouseButton:
-	var event: InputEventMouseButton = InputEventMouseButton.new()
-	event.button_index = button
 	return event
 
 static func _button(button: JoyButton) -> InputEventJoypadButton:

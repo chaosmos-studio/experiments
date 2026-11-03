@@ -3,15 +3,11 @@ extends CanvasLayer
 
 signal begin_pressed
 signal pause_pressed
-signal jump_pressed
-signal jump_released
-signal shift_pressed(step: int)
-signal move_pressed(axis: float)
 
 const INK: Color = Color("17142b")
 const PAPER: Color = Color("fff0bc")
-const CYAN: Color = Color("51d7d0")
-const CORAL: Color = Color("eaa250")
+const ACCENT: Color = Color("eaa250")
+const MUTED: Color = Color("51d7d0")
 const FONT: FontFile = preload("res://assets/fonts/LiberationMono-Bold.ttf")
 
 var root: Control
@@ -23,11 +19,14 @@ var hint_back: Panel
 var panel: ColorRect
 var panel_title: Label
 var panel_body: Label
-var panel_button: TextureButton
-var panel_button_label: Label
-var extra_touches: Dictionary[int, String] = {}
+var guide_label: Label
+var panel_button: Button
 var regular_font: FontVariation
 var heavy_font: FontVariation
+var status_items: Array[Control] = []
+var direction_panel: Panel
+var pause_button: Button
+var portrait: TextureRect
 
 
 func _ready() -> void:
@@ -35,77 +34,38 @@ func _ready() -> void:
 	regular_font = _font(650)
 	heavy_font = _font(850)
 	root = Control.new()
-	root.size = Vector2(1920, 1080)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	var status: Panel = _panel(Rect2(54, 25, 760, 96), Color("211c37", 0.94), 0, 4)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var status: Panel = _panel(Rect2(38, 28, 795, 102), Color("211c37", 0.92))
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label = _label(Vector2(82, 30), Vector2(700, 49), 33, PAPER, true)
-	progress_label = _label(Vector2(84, 76), Vector2(685, 34), 26, CORAL)
-	var gravity_panel: Panel = _panel(Rect2(1418, 25, 352, 82), Color("211c37", 0.94), 0, 4)
-	gravity_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gravity_label = _label(Vector2(1432, 34), Vector2(317, 60), 27, PAPER, true)
+	title_label = _label(root, Vector2(66, 35), Vector2(730, 48), 34, PAPER, true)
+	progress_label = _label(root, Vector2(67, 79), Vector2(720, 39), 25, ACCENT)
+	direction_panel = _panel(Rect2(1460, 28, 298, 82), Color("211c37", 0.92))
+	direction_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gravity_label = _label(root, Vector2(1470, 36), Vector2(270, 61), 27, PAPER, true)
 	gravity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_art_button("res://assets/ui/retro_pause.svg", Rect2(1801, 28, 78, 78), func() -> void: pause_pressed.emit(), Callable())
-	hint_back = _panel(Rect2(515, 143, 890, 56), INK, 0, 3)
+	pause_button = _button(root, Rect2(1781, 28, 96, 82), "II", Color("211c37"), PAPER)
+	pause_button.tooltip_text = "Pause"
+	pause_button.pressed.connect(func() -> void: pause_pressed.emit())
+	hint_back = _panel(Rect2(475, 145, 970, 63), Color("211c37", 0.94))
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_label = _label(Vector2(535, 142), Vector2(850, 58), 30, PAPER, true)
+	hint_label = _label(root, Vector2(495, 146), Vector2(930, 60), 30, PAPER, true)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if DisplayServer.is_touchscreen_available():
-		_art_button("res://assets/ui/retro_left.svg", Rect2(54, 906, 150, 130), func() -> void: move_pressed.emit(-1.0), func() -> void: move_pressed.emit(0.0))
-		_art_button("res://assets/ui/retro_right.svg", Rect2(215, 906, 150, 130), func() -> void: move_pressed.emit(1.0), func() -> void: move_pressed.emit(0.0))
-		_art_button("res://assets/ui/retro_jump.svg", Rect2(1505, 886, 165, 150), func() -> void: jump_pressed.emit(), func() -> void: jump_released.emit())
-		_art_button("res://assets/ui/retro_turn.svg", Rect2(1692, 886, 165, 150), func() -> void: shift_pressed.emit(1), Callable())
-		_action_label("JUMP", Rect2(1505, 988, 165, 39))
-		_action_label("TURN", Rect2(1692, 988, 165, 39))
+	status_items.assign([status, title_label, progress_label, direction_panel, gravity_label, pause_button, hint_back, hint_label])
 	_build_panel()
+	get_viewport().size_changed.connect(_layout)
+	call_deferred("_layout")
 
 
-func _input(event: InputEvent) -> void:
-	if panel.visible:
-		return
-	if event is InputEventScreenTouch and event.index > 0:
-		if event.pressed:
-			var control: String = _touch_control_at(event.position)
-			extra_touches[event.index] = control
-			_press_extra_control(control)
-		else:
-			_release_extra_control(extra_touches.get(event.index, ""))
-			extra_touches.erase(event.index)
-	elif event is InputEventScreenDrag and event.index > 0:
-		var previous: String = extra_touches.get(event.index, "")
-		var next: String = _touch_control_at(event.position)
-		if previous != next:
-			_release_extra_control(previous)
-			extra_touches[event.index] = next
-			_press_extra_control(next)
-
-
-func _touch_control_at(point: Vector2) -> String:
-	if Rect2(54, 906, 150, 130).has_point(point):
-		return "left"
-	if Rect2(215, 906, 150, 130).has_point(point):
-		return "right"
-	if Rect2(1505, 886, 165, 150).has_point(point):
-		return "jump"
-	if Rect2(1692, 886, 165, 150).has_point(point):
-		return "turn"
-	return ""
-
-
-func _press_extra_control(control: String) -> void:
-	match control:
-		"left": move_pressed.emit(-1.0)
-		"right": move_pressed.emit(1.0)
-		"jump": jump_pressed.emit()
-		"turn": shift_pressed.emit(1)
-
-
-func _release_extra_control(control: String) -> void:
-	if control == "left" or control == "right":
-		move_pressed.emit(0.0)
-	elif control == "jump":
-		jump_released.emit()
+func _layout() -> void:
+	var width: float = root.size.x
+	direction_panel.position.x = width - 460.0
+	gravity_label.position.x = width - 450.0
+	pause_button.position.x = width - 139.0
+	hint_back.position.x = (width - hint_back.size.x) * 0.5
+	hint_label.position.x = (width - hint_label.size.x) * 0.5
+	portrait.position.x = width - 857.0
 
 
 func _font(weight: int) -> FontVariation:
@@ -116,28 +76,28 @@ func _font(weight: int) -> FontVariation:
 	return value
 
 
-func _style(color: Color, radius: int, border_width: int) -> StyleBoxFlat:
+func _style(color: Color, border: Color = INK, width: int = 3) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = color
-	style.border_color = INK
-	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(radius)
-	style.shadow_color = Color("100d22", 0.78)
+	style.border_color = border
+	style.set_border_width_all(width)
+	style.set_corner_radius_all(0)
+	style.shadow_color = Color("090d13", 0.34)
 	style.shadow_size = 0
-	style.shadow_offset = Vector2(7, 7)
+	style.shadow_offset = Vector2(5, 5)
 	return style
 
 
-func _panel(rect: Rect2, color: Color, radius: int, border_width: int) -> Panel:
+func _panel(rect: Rect2, color: Color) -> Panel:
 	var value: Panel = Panel.new()
 	value.position = rect.position
 	value.size = rect.size
-	value.add_theme_stylebox_override("panel", _style(color, radius, border_width))
+	value.add_theme_stylebox_override("panel", _style(color, ACCENT, 2))
 	root.add_child(value)
 	return value
 
 
-func _label(pos: Vector2, extent: Vector2, size_px: int, color: Color, heavy: bool = false) -> Label:
+func _label(parent: Control, pos: Vector2, extent: Vector2, size_px: int, color: Color, heavy: bool = false) -> Label:
 	var value: Label = Label.new()
 	value.position = pos
 	value.size = extent
@@ -146,116 +106,59 @@ func _label(pos: Vector2, extent: Vector2, size_px: int, color: Color, heavy: bo
 	value.add_theme_font_override("font", heavy_font if heavy else regular_font)
 	value.add_theme_font_size_override("font_size", size_px)
 	value.add_theme_color_override("font_color", color)
-	root.add_child(value)
+	parent.add_child(value)
 	return value
 
 
-func _art_button(path: String, rect: Rect2, down: Callable, up: Callable) -> void:
-	var button: TextureButton = TextureButton.new()
-	button.texture_normal = load(path) as Texture2D
-	button.texture_pressed = button.texture_normal
-	button.texture_hover = button.texture_normal
-	button.position = rect.position
-	button.size = rect.size
-	button.ignore_texture_size = true
-	button.stretch_mode = TextureButton.STRETCH_SCALE
-	button.pivot_offset = rect.size * 0.5
-	button.focus_mode = Control.FOCUS_NONE
-	button.button_down.connect(down)
-	button.button_down.connect(func() -> void: _animate_button(button, Vector2(0.91, 0.91), 0.06))
-	button.button_up.connect(func() -> void: _animate_button(button, Vector2.ONE, 0.12))
-	if up.is_valid():
-		button.button_up.connect(up)
-	root.add_child(button)
-
-
-func _action_label(text_value: String, rect: Rect2) -> void:
-	var label: Label = _label(rect.position, rect.size, 25, PAPER, true)
-	label.text = text_value
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-
-func _animate_button(button: TextureButton, target: Vector2, duration: float) -> void:
-	var tween: Tween = button.create_tween()
-	tween.tween_property(button, "scale", target, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+func _button(parent: Control, rect: Rect2, caption: String, background: Color, foreground: Color) -> Button:
+	var value: Button = Button.new()
+	value.position = rect.position
+	value.size = rect.size
+	value.text = caption
+	value.focus_mode = Control.FOCUS_ALL
+	value.add_theme_font_override("font", heavy_font)
+	value.add_theme_font_size_override("font_size", 37)
+	value.add_theme_color_override("font_color", foreground)
+	value.add_theme_color_override("font_hover_color", foreground)
+	value.add_theme_color_override("font_pressed_color", foreground)
+	value.add_theme_stylebox_override("normal", _style(background, ACCENT, 4))
+	value.add_theme_stylebox_override("hover", _style(background.lightened(0.11), ACCENT, 5))
+	value.add_theme_stylebox_override("pressed", _style(background.darkened(0.14), ACCENT, 5))
+	value.add_theme_stylebox_override("focus", _style(Color.TRANSPARENT, foreground, 3))
+	parent.add_child(value)
+	return value
 
 
 func _build_panel() -> void:
 	panel = ColorRect.new()
-	panel.color = Color("100d22", 0.88)
-	panel.size = Vector2(1920, 1080)
+	panel.color = Color("17142b", 0.90)
 	root.add_child(panel)
-	var card: Panel = Panel.new()
-	card.position = Vector2(137, 160)
-	card.size = Vector2(1020, 754)
-	card.add_theme_stylebox_override("panel", _style(Color("2a2345"), 0, 8))
-	panel.add_child(card)
-	var stripe: ColorRect = ColorRect.new()
-	stripe.position = Vector2(0, 0)
-	stripe.size = Vector2(1020, 22)
-	stripe.color = CYAN
-	card.add_child(stripe)
-	var kicker: Label = Label.new()
-	kicker.position = Vector2(72, 53)
-	kicker.size = Vector2(860, 48)
-	kicker.text = "1997  /  GRAVITY ENGINE"
-	kicker.add_theme_font_override("font", heavy_font)
-	kicker.add_theme_font_size_override("font_size", 25)
-	kicker.add_theme_color_override("font_color", CORAL)
-	card.add_child(kicker)
-	panel_title = Label.new()
-	panel_title.position = Vector2(70, 115)
-	panel_title.size = Vector2(900, 138)
-	panel_title.add_theme_font_override("font", heavy_font)
-	panel_title.add_theme_font_size_override("font_size", 103)
-	panel_title.add_theme_color_override("font_color", PAPER)
-	card.add_child(panel_title)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var edition: Label = _label(panel, Vector2(132, 116), Vector2(900, 50), 28, ACCENT, true)
+	edition.text = "1997  /  GRAVITY ENGINE"
 	var rule: ColorRect = ColorRect.new()
-	rule.position = Vector2(73, 258)
-	rule.size = Vector2(800, 7)
-	rule.color = CORAL
-	card.add_child(rule)
-	panel_body = Label.new()
-	panel_body.position = Vector2(74, 303)
-	panel_body.size = Vector2(810, 255)
+	rule.position = Vector2(132, 188)
+	rule.size = Vector2(155, 8)
+	rule.color = ACCENT
+	panel.add_child(rule)
+	panel_title = _label(panel, Vector2(128, 223), Vector2(900, 146), 101, PAPER, true)
+	panel_body = _label(panel, Vector2(139, 390), Vector2(805, 100), 37, PAPER)
 	panel_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel_body.add_theme_font_override("font", regular_font)
-	panel_body.add_theme_font_size_override("font_size", 33)
-	panel_body.add_theme_color_override("font_color", PAPER)
-	card.add_child(panel_body)
-	panel_button = TextureButton.new()
-	panel_button.position = Vector2(72, 604)
-	panel_button.size = Vector2(500, 100)
-	panel_button.texture_normal = preload("res://assets/ui/retro_action.svg")
-	panel_button.texture_hover = panel_button.texture_normal
-	panel_button.texture_pressed = panel_button.texture_normal
-	panel_button.ignore_texture_size = true
-	panel_button.stretch_mode = TextureButton.STRETCH_SCALE
-	panel_button.pivot_offset = panel_button.size * 0.5
-	panel_button.focus_mode = Control.FOCUS_ALL
+	var guide_rule: ColorRect = ColorRect.new()
+	guide_rule.position = Vector2(140, 534)
+	guide_rule.size = Vector2(748, 3)
+	guide_rule.color = MUTED
+	panel.add_child(guide_rule)
+	guide_label = _label(panel, Vector2(140, 562), Vector2(830, 245), 29, PAPER)
+	guide_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	guide_label.text = "SLIDE LEFT / RIGHT    MOVE\nSWIPE UP    JUMP      SWIPE DOWN    CROUCH\nTAP    SHIFT GRAVITY" if DisplayServer.is_touchscreen_available() else "A / D  OR  LEFT / RIGHT    MOVE\nW / UP / SPACE    JUMP      S / DOWN    CROUCH\nSHIFT  OR  CLICK    SHIFT GRAVITY"
+	panel_button = _button(panel, Rect2(139, 849, 500, 112), "START RUN", ACCENT, INK)
 	panel_button.pressed.connect(func() -> void: begin_pressed.emit())
-	panel_button.button_down.connect(func() -> void: _animate_button(panel_button, Vector2(0.96, 0.96), 0.06))
-	panel_button.button_up.connect(func() -> void: _animate_button(panel_button, Vector2.ONE, 0.12))
-	card.add_child(panel_button)
-	panel_button_label = Label.new()
-	panel_button_label.position = Vector2(48, 26)
-	panel_button_label.size = Vector2(340, 57)
-	panel_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	panel_button_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel_button_label.add_theme_font_override("font", heavy_font)
-	panel_button_label.add_theme_font_size_override("font_size", 38)
-	panel_button_label.add_theme_color_override("font_color", INK)
-	panel_button.add_child(panel_button_label)
-	var art_panel: Panel = Panel.new()
-	art_panel.position = Vector2(1210, 180)
-	art_panel.size = Vector2(560, 720)
-	art_panel.add_theme_stylebox_override("panel", _style(Color("15132e"), 0, 8))
-	panel.add_child(art_panel)
-	var portrait: TextureRect = TextureRect.new()
+	portrait = TextureRect.new()
 	portrait.texture = preload("res://assets/art/retro_idle.png")
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	portrait.position = Vector2(1240, 196)
-	portrait.size = Vector2(500, 680)
+	portrait.position = Vector2(1063, 154)
+	portrait.size = Vector2(770, 830)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -264,14 +167,19 @@ func _build_panel() -> void:
 
 func show_panel(title: String, body: String, button: String) -> void:
 	panel.visible = true
+	for item: Control in status_items:
+		item.visible = false
 	panel_title.text = title
 	panel_body.text = body
-	panel_button_label.text = button
+	guide_label.visible = title.begins_with("PALEWHEEL")
+	panel_button.text = button
 	panel_button.grab_focus()
 
 
 func hide_panel() -> void:
 	panel.visible = false
+	for item: Control in status_items:
+		item.visible = true
 
 
 func set_hint(text: String) -> void:

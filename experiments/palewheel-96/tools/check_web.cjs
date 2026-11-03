@@ -20,8 +20,12 @@ async function main() {
     ] });
     const page = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
     const errors = [];
+    const shifts = [];
     page.on('pageerror', error => errors.push(String(error)));
-    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    page.on('console', message => {
+      if (message.type() === 'error') errors.push(message.text());
+      if (message.text().includes('PALEWHEEL_SHIFT')) shifts.push(message.text());
+    });
     await page.goto('http://127.0.0.1:8769/', { timeout: 180000 });
     await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
@@ -31,25 +35,34 @@ async function main() {
     await mkdir(results, { recursive: true });
     await page.screenshot({ path: path.join(results, 'intro.png') });
     let marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await page.touchscreen.tap(240, 292);
+    await page.touchscreen.tap(200, 330);
     await marker;
     await page.waitForTimeout(600);
+    if (shifts.length) throw new Error('Starting the game turned gravity');
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 105, y: 353, id: 0 }] });
-    await page.waitForTimeout(240);
-    await page.screenshot({ path: path.join(results, 'run.png') });
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [
-      { x: 105, y: 353, id: 0 }, { x: 573, y: 350, id: 1 }
-    ] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 550, y: 315, id: 0 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 550, y: 170, id: 0 }] });
     await marker;
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [{ x: 105, y: 353, id: 0 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(results, 'jump.png') });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 550, y: 195, id: 0 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 550, y: 335, id: 0 }] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForTimeout(120);
-    await page.screenshot({ path: path.join(results, 'jump.png') });
+    await page.screenshot({ path: path.join(results, 'crouch.png') });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 310, y: 275, id: 0 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 455, y: 275, id: 0 }] });
+    await page.waitForTimeout(280);
+    await page.screenshot({ path: path.join(results, 'run.png') });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    if (shifts.length) throw new Error(`A movement gesture turned gravity: ${shifts.join(', ')}`);
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
-    await page.touchscreen.tap(640, 350);
+    await page.touchscreen.tap(680, 260);
     await marker;
+    await page.waitForTimeout(300);
+    if (shifts.length !== 1) throw new Error(`One tap turned gravity ${shifts.length} times`);
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'mobile.png') });
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -57,8 +70,18 @@ async function main() {
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     await desktop.waitForTimeout(800);
     const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await desktop.mouse.click(200, 545);
+    await desktop.mouse.click(200, 605);
     await desktopStart;
+    await desktop.waitForTimeout(350);
+    const desktopJump = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
+    await desktop.keyboard.press('w');
+    await desktopJump;
+    await desktop.keyboard.down('s');
+    await desktop.waitForTimeout(140);
+    await desktop.keyboard.up('s');
+    const desktopShift = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
+    await desktop.keyboard.press('Shift');
+    await desktopShift;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
     for (const [room, world] of [[1, 'array'], [2, 'freight'], [3, 'core']]) {
       const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
@@ -69,7 +92,7 @@ async function main() {
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
       const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_START ${room}`), timeout: 10000 });
-      await preview.touchscreen.tap(240, 292);
+      await preview.touchscreen.tap(200, 330);
       await started;
       await preview.waitForTimeout(400);
       await preview.screenshot({ path: path.join(results, `${world}.png`) });

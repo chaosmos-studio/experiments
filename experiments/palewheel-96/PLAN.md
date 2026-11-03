@@ -10,9 +10,10 @@ The player collects light to open each exit, with beacons preserving progress af
 ## Direction
 
 This experiment keeps Palewheel's gravity mechanics and room routes so the player can judge the effect of a different visual and musical direction.
-It uses a limited copper, teal and aubergine palette, visible square pixels, a hand-pixeled mechanic, engine props, blocky UI controls, and an original four-voice game loop.
+It uses a limited copper, teal and aubergine palette, visible square pixels, a hand-pixeled mechanic, engine props, a compact pixel HUD, and an original four-voice game loop.
 Jump height follows the hold time, and gravity turns preserve momentum while the character art rotates into the new orientation.
-The touch controls sit over the full-screen playfield.
+The playfield handles slides and swipes for movement, jumping, and crouching.
+A tap turns gravity.
 
 ## Structure
 
@@ -22,7 +23,7 @@ The touch controls sit over the full-screen playfield.
 `scripts/cargo.gd` applies gravity to the movable block.
 `scripts/sentry.gd` owns watcher patrol, collision, and freeze timing.
 `scripts/world_view.gd` draws the engine chamber and gameplay objects over pixel-art backgrounds.
-`scripts/hud.gd` owns touch controls, status, hints, and panels.
+`scripts/hud.gd` owns status, hints, and panels.
 
 ## Scope
 

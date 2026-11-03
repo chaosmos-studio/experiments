@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	await _test_movement_feel()
+	await _test_gesture_controls()
 	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -62,6 +63,78 @@ func _test_movement_feel() -> void:
 		await physics_frame
 		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
 	pilot.queue_free()
+	await process_frame
+
+
+func _test_gesture_controls() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._on_begin()
+	var press: InputEventScreenTouch = InputEventScreenTouch.new()
+	press.index = 0
+	press.position = Vector2(500, 500)
+	press.pressed = true
+	game._unhandled_input(press)
+	var release: InputEventScreenTouch = InputEventScreenTouch.new()
+	release.index = 0
+	release.position = Vector2(500, 500)
+	release.pressed = false
+	game._unhandled_input(release)
+	_check("a playfield tap turns gravity once", game.gravity_direction == Vector2.LEFT)
+	game.last_shift = -1.0
+	var click: InputEventMouseButton = InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	game._unhandled_input(click)
+	_check("a synthetic mouse click after touch does not turn gravity", game.gravity_direction == Vector2.LEFT)
+	_check("gravity shift has a keyboard action", InputMap.has_action("shift_gravity"))
+	if InputMap.has_action("shift_gravity"):
+		game.last_shift = -1.0
+		var shift_key: InputEventKey = InputEventKey.new()
+		shift_key.physical_keycode = KEY_SHIFT
+		shift_key.pressed = true
+		game._unhandled_input(shift_key)
+		_check("Shift turns gravity", game.gravity_direction == Vector2.UP)
+		game.last_shift = -1.0
+		game.last_touch_msec = -100000
+		game.last_start_msec = -100000
+		game._unhandled_input(click)
+		_check("a mouse click turns gravity", game.gravity_direction == Vector2.RIGHT)
+	game._unhandled_input(press)
+	var slide: InputEventScreenDrag = InputEventScreenDrag.new()
+	slide.index = 0
+	slide.position = Vector2(660, 500)
+	game._unhandled_input(slide)
+	_check("a horizontal slide walks right", game.pilot.touch_axis == 1.0)
+	release.position = slide.position
+	game._unhandled_input(release)
+	_check("lifting the finger stops walking", game.pilot.touch_axis == 0.0)
+	game._unhandled_input(press)
+	var upward: InputEventScreenDrag = InputEventScreenDrag.new()
+	upward.index = 0
+	upward.position = Vector2(500, 370)
+	game._unhandled_input(upward)
+	_check("an upward swipe queues a jump", game.pilot.touch_jump)
+	release.position = upward.position
+	game._unhandled_input(release)
+	_check("the pilot supports a crouch action", game.pilot.has_method("set_touch_crouch"))
+	if game.pilot.has_method("set_touch_crouch"):
+		game._unhandled_input(press)
+		var downward: InputEventScreenDrag = InputEventScreenDrag.new()
+		downward.index = 0
+		downward.position = Vector2(500, 640)
+		game._unhandled_input(downward)
+		release.position = downward.position
+		game._unhandled_input(release)
+		_check("a downward swipe leaves the pilot crouching", game.pilot.get("touch_crouch") == true)
+		game.pilot.call("_set_crouch", true)
+		var shape: CollisionShape2D = game.pilot.get_child(0) as CollisionShape2D
+		_check("crouching lowers the collision shape", (shape.shape as CapsuleShape2D).height < 78.0)
+		game.pilot.call("_set_crouch", false)
+		_check("standing restores the collision shape", (shape.shape as CapsuleShape2D).height == 78.0)
+	game.queue_free()
 	await process_frame
 
 

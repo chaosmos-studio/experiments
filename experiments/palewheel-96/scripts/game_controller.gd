@@ -21,6 +21,10 @@ var run_time: float = 0.0
 var deaths: int = 0
 var shifts: int = 0
 var last_shift: float = -1.0
+var touch_starts: Dictionary[int, Dictionary] = {}
+var mobile_crouched: bool = false
+var last_touch_msec: int = -1000
+var last_start_msec: int = -1000
 var room: Node2D
 var world: PalewheelWorldView
 var pilot: PalewheelCourier
@@ -68,17 +72,13 @@ func _ready() -> void:
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
-	hud.jump_pressed.connect(func() -> void: if is_instance_valid(pilot): pilot.queue_touch_jump())
-	hud.jump_released.connect(func() -> void: if is_instance_valid(pilot): pilot.release_touch_jump())
-	hud.move_pressed.connect(func(axis: float) -> void: if is_instance_valid(pilot): pilot.touch_axis = axis)
-	hud.shift_pressed.connect(_shift)
 	var initial_room: int = 0
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
 		if requested_room != null:
 			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
 	_load_level(initial_room)
-	hud.show_panel("PALEWHEEL 96", "A lost gravity engine is waking up. Find its light cells and turn the pull to cross the machinery.\n\nA / D move. Space jumps. E turns. On a phone, use the touch controls.", "START")
+	hud.show_panel("PALEWHEEL 96", "Collect the light. Turn gravity to find a route.", "START RUN")
 
 
 func _process(delta: float) -> void:
@@ -91,19 +91,79 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or not event.pressed or event.echo:
+	if event is InputEventScreenTouch and playing:
+		_handle_touch(event)
 		return
-	var key: int = event.physical_keycode
-	if key == KEY_ENTER and not playing:
+	if event is InputEventScreenDrag and playing:
+		_handle_drag(event)
+		return
+	if event is InputEventMouseButton:
+		if playing and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if not DisplayServer.is_touchscreen_available() and Time.get_ticks_msec() - last_touch_msec > 2000 and Time.get_ticks_msec() - last_start_msec > 150:
+				_shift(1)
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ENTER and not playing:
 		_on_begin()
-	elif key == KEY_Q and playing:
-		_shift(-1)
-	elif key == KEY_E and playing:
+	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
-	elif key == KEY_R and playing:
+	elif playing and event.is_action_pressed("retry"):
 		_restart()
-	elif key == KEY_P and playing:
+	elif playing and event.is_action_pressed("pause"):
 		_on_pause()
+
+
+func _handle_touch(event: InputEventScreenTouch) -> void:
+	last_touch_msec = Time.get_ticks_msec()
+	if event.pressed:
+		touch_starts[event.index] = {"origin": event.position, "mode": "", "axis": 0.0, "dragged": false}
+		return
+	if not touch_starts.has(event.index):
+		return
+	var touch: Dictionary = touch_starts[event.index]
+	if not touch["dragged"] and event.position.distance_to(touch["origin"]) < 64.0:
+		_shift(1)
+	touch_starts.erase(event.index)
+	_sync_touch_controls()
+
+
+func _handle_drag(event: InputEventScreenDrag) -> void:
+	last_touch_msec = Time.get_ticks_msec()
+	if not touch_starts.has(event.index):
+		return
+	var touch: Dictionary = touch_starts[event.index]
+	var offset: Vector2 = event.position - touch["origin"]
+	if offset.length() < 64.0:
+		return
+	touch["dragged"] = true
+	var previous: String = touch["mode"]
+	if absf(offset.x) > absf(offset.y) * 1.15:
+		touch["mode"] = "move"
+		touch["axis"] = signf(offset.x)
+		mobile_crouched = false
+	elif offset.y < 0.0:
+		touch["mode"] = "jump"
+		touch["axis"] = 0.0
+		mobile_crouched = false
+		if previous != "jump":
+			pilot.queue_touch_jump()
+	else:
+		touch["mode"] = "crouch"
+		touch["axis"] = 0.0
+		if previous != "crouch":
+			mobile_crouched = not mobile_crouched
+	touch_starts[event.index] = touch
+	_sync_touch_controls()
+
+
+func _sync_touch_controls() -> void:
+	if not is_instance_valid(pilot):
+		return
+	pilot.touch_axis = 0.0
+	for touch: Dictionary in touch_starts.values():
+		if touch["mode"] == "move":
+			pilot.touch_axis = touch["axis"]
+			break
+	pilot.set_touch_crouch(mobile_crouched)
 
 
 func _physics_process(_delta: float) -> void:
@@ -113,6 +173,8 @@ func _physics_process(_delta: float) -> void:
 
 
 func _load_level(index: int) -> void:
+	touch_starts.clear()
+	mobile_crouched = false
 	level_index = index
 	level = PalewheelLevels.get_level(index)
 	gravity_direction = Vector2.DOWN
@@ -255,6 +317,8 @@ func _respawn() -> void:
 	pilot.jump_buffer = 0.0
 	pilot.jump_cut_requested = false
 	pilot.touch_jump = false
+	pilot.set_touch_crouch(false)
+	pilot.touch_axis = 0.0
 	pilot.reset_physics_interpolation()
 	pilot.control_enabled = playing
 	last_shift = -1.0
@@ -357,6 +421,10 @@ func _restart() -> void:
 func _on_pause() -> void:
 	if not playing:
 		return
+	touch_starts.clear()
+	mobile_crouched = false
+	pilot.touch_axis = 0.0
+	pilot.set_touch_crouch(false)
 	playing = false
 	pilot.control_enabled = false
 	for sentry: PalewheelWatcher in sentries:
@@ -366,9 +434,11 @@ func _on_pause() -> void:
 
 
 func _on_begin() -> void:
-	if not music.playing:
-		music.play()
-	music.stream_paused = false
+	last_start_msec = Time.get_ticks_msec()
+	if audio_enabled:
+		if not music.playing:
+			music.play()
+		music.stream_paused = false
 	if finished:
 		finished = false
 		run_time = 0.0
