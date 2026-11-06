@@ -9,7 +9,6 @@ Each one is a standalone Godot project under `experiments/`.
 
 Game Off 2026 drafts for the theme SHIFT:
 
-- [Palewheel 96](experiments/palewheel-96/), a late-90s pixel-art interpretation of Palewheel's gravity platforming. [Play on the web](https://chaosmos.studio/experiments/palewheel-96/)
 - [Compassfall](experiments/compassfall/), run, jump and turn gravity through a clockwork station. [Play on the web](https://chaosmos.studio/experiments/compassfall/)
 - [Handover](experiments/handover/), assign three caretakers to connected tasks in an orbital greenhouse. [Play on the web](https://chaosmos.studio/experiments/handover/)
 - [Phasewalk](experiments/phasewalk/), switch between two versions of a room to cross blocked paths. [Play on the web](https://chaosmos.studio/experiments/phasewalk/)
