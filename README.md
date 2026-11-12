@@ -1,10 +1,13 @@
 # Experiments
 
 Chaosmos game prototypes.
-Each one is a standalone Godot or browser project under `experiments/`.
+The source lives under `experiments/`.
 
 Action worlds:
 
+- [Brassburrow](experiments/brassburrow/), defend a moving hearth by harvesting copper and building seed cannons. [Play the preview](https://chaosmos.studio/experiments/action-lab/?game=brassburrow)
+- [Veilmarket](experiments/brassburrow/), borrow a shopper's appearance and slip past wardens with sealed parcels. [Play the preview](https://chaosmos.studio/experiments/action-lab/?game=veilmarket)
+- [Threadrail](experiments/brassburrow/), grapple between floating islands and keep your momentum through a current. [Play the preview](https://chaosmos.studio/experiments/action-lab/?game=threadrail)
 - [Veylifter](experiments/veylifter/), an aerial rescue run where a storm presses in as you carry stranded people home. [Play the preview](https://chaosmos.studio/experiments/veylifter/)
 - [Undertow Bloom](experiments/undertow-bloom/), a deep-sea escort game about building and protecting a living chain of lights. [Play the preview](https://chaosmos.studio/experiments/undertow-bloom/)
 - [Mixtape Mile](experiments/mixtape-mile/), a skate courier ride where tricks build a song across three city shows. [Play the preview](https://chaosmos.studio/experiments/mixtape-mile/)
@@ -29,6 +32,7 @@ The list at [chaosmos.studio/experiments](https://chaosmos.studio/experiments/) 
 ## Run
 
 Compassfall, Handover, Phasewalk and Rowshift use Godot 4.7.
+Brassburrow, Veilmarket and Threadrail share a Godot 4.7 action lab project.
 The three earlier experiments use Godot 4.5.2.
 Run these from the individual game's directory under `experiments/`.
 
