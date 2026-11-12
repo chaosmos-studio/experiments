@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#101b31">
+  <title>Veylifter | Chaosmos Experiments</title>
+  <meta name="description" content="Pilot a rescue skiff into a living storm. Bring people home before the weather swallows the carrier.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="--accent:#ffd080;--accent-rgb:255,208,128;--cool:#79e1ef;--shade:#101b31">
+  <canvas id="world" aria-label="Veylifter, an aerial rescue game"></canvas>
+  <div class="vignette"></div>
+  <header class="masthead">
+    <a class="studio" href="https://chaosmos.studio/experiments/">CHAOSMOS <span>LAB</span></a>
+    <span class="edition">PLAYABLE WORLD / 01</span>
+    <button id="mute" class="icon-button" aria-label="Mute sound" title="Toggle sound">♫</button>
+  </header>
+  <main>
+    <section id="intro" class="panel">
+      <div class="kicker"><span class="pulse-dot"></span> STORM RESCUE · ACTION EXTRACTION</div>
+      <h1>VEY<span>LIFTER</span></h1>
+      <p class="pitch">Fly beyond the carrier. Hold steady over stranded lights to lift people aboard. Get them home before the storm takes the sky.</p>
+      <div class="rules"><span><b>MOVE</b> WASD / arrows or left stick</span><span><b>BOOST</b> Space or right button</span><span><b>BANK</b> Return to the carrier</span></div>
+      <button id="start" class="launch">Launch the skiff <span>↗</span></button>
+      <p class="footnote">A small playable slice of a larger rescue world. Original art and sound.</p>
+    </section>
+    <div id="hud" class="hud" aria-live="polite">
+      <div class="hud-title">VEY<span>LIFTER</span><small>THE STORM FRONT</small></div>
+      <div class="hud-stats"><div><small>HOME</small><strong id="banked">0 / 5</strong></div><div><small>ABOARD</small><strong id="aboard">0 / 2</strong></div><div><small>HULL</small><strong id="hull">100%</strong></div><div><small>STORM</small><strong id="clock">90s</strong></div></div>
+    </div>
+    <div id="message" class="message" aria-live="assertive"></div>
+    <div id="touch" class="touch"><div id="stick" class="stick" aria-label="Move skiff"><i></i></div><button id="action" class="action">BOOST</button></div>
+    <section id="finish" class="panel result" aria-live="assertive">
+      <div class="kicker" id="finish-kicker">FLIGHT COMPLETE</div>
+      <h2 id="finish-title">THE SKY HOLDS</h2>
+      <p id="finish-copy"></p>
+      <button id="restart" class="launch">Fly again <span>↗</span></button>
+    </section>
+  </main>
+  <script src="game.js" defer></script>
+</body>
+</html>
