@@ -1,0 +1,78 @@
+name: Test and publish action worlds
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/action-worlds-web.yml
+      - experiments/veylifter/**
+      - experiments/undertow-bloom/**
+      - experiments/mixtape-mile/**
+      - tools/check_action_worlds.cjs
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/action-worlds-web.yml
+      - experiments/veylifter/**
+      - experiments/undertow-bloom/**
+      - experiments/mixtape-mile/**
+      - tools/check_action_worlds.cjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-site
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check game scripts
+        run: |
+          node --check experiments/veylifter/game.js
+          node --check experiments/undertow-bloom/game.js
+          node --check experiments/mixtape-mile/game.js
+      - name: Play on desktop and phone
+        run: |
+          npm ci --prefix experiments/rivet
+          node tools/check_action_worlds.cjs
+      - name: Publish Veylifter
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/veylifter
+          target-folder: experiments/veylifter
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Veylifter
+      - name: Publish Undertow Bloom
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/undertow-bloom
+          target-folder: experiments/undertow-bloom
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Undertow Bloom
+      - name: Publish Mixtape Mile
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: experiments/mixtape-mile
+          target-folder: experiments/mixtape-mile
+          force: false
+          attempt-limit: 10
+          commit-message: Publish Mixtape Mile

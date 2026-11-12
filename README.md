@@ -1,7 +1,13 @@
 # Experiments
 
 Chaosmos game prototypes.
-Each one is a standalone Godot project under `experiments/`.
+Each one is a standalone Godot or browser project under `experiments/`.
+
+Action worlds:
+
+- [Veylifter](experiments/veylifter/), an aerial rescue run where a storm presses in as you carry stranded people home. [Play the preview](https://chaosmos.studio/experiments/veylifter/)
+- [Undertow Bloom](experiments/undertow-bloom/), a deep-sea escort game about building and protecting a living chain of lights. [Play the preview](https://chaosmos.studio/experiments/undertow-bloom/)
+- [Mixtape Mile](experiments/mixtape-mile/), a skate courier ride where tricks build a song across three city shows. [Play the preview](https://chaosmos.studio/experiments/mixtape-mile/)
 
 - [Hinge Grove](experiments/hinge-grove/), a garden puzzle about swinging paired seeds and choosing when to take root. [Play the preview](https://chaosmos.studio/experiments/hinge-grove/)
 - [Rivet](experiments/rivet/), a sorting puzzle about taking screws out in order. [Play the preview](https://chaosmos.studio/experiments/rivet/)
@@ -42,4 +48,4 @@ npx playwright test
 ```
 
 Every code push to `main` runs the checks for the three earlier experiments and publishes them to chaosmos.studio.
-The Game Off drafts publish from their own workflow to the studio site's GitHub Pages branch.
+The Game Off drafts and action worlds publish from their own workflows to the studio site's GitHub Pages branch.
