@@ -1,0 +1,5 @@
+.godot/
+build/
+test-results/
+assets/audio/march.wav
+assets/audio/march.wav.import
