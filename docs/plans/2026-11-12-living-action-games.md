@@ -6,4 +6,4 @@
 - [x] Build a social stealth action slice with crowds, disguises and pursuit. Skills: `godot-prompter:player-controller`, `godot-prompter:ai-navigation`, `godot-prompter:animation-system`.
 - [x] Build a momentum traversal action slice with grappling and current hazards. Skills: `godot-prompter:player-controller`, `godot-prompter:physics-system`, `godot-prompter:camera-system`.
 - [x] Play through the three core loops in Godot and exercise each mode in the browser. Skills: `godot-prompter:godot-testing`, `godot-prompter:web-export`.
-- [ ] Publish the shared Web export and verify all three public links.
+- [x] Publish the shared Web export and verify all three public links.
