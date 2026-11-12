@@ -26,6 +26,7 @@ Run `godot --path .` from this directory for Brassburrow.
 Pass `-- game=veilmarket` or `-- game=threadrail` after Godot options to open another mode.
 The three headless smoke scenes in `tools/` cover the core actions and result loops.
 Export the Web preset to `build/web/index.html` after importing the assets in Godot.
+Run `python3 tools/prepare_web.py` after each Web export to make its compressed engine file.
 The browser build selects a game with `?game=brassburrow`, `?game=veilmarket` or `?game=threadrail`.
 
 ## Art and audio

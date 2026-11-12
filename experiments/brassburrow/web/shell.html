@@ -24,6 +24,20 @@ $GODOT_HEAD_INCLUDE
 <canvas id="canvas" tabindex="0" aria-label="Chaosmos action game">A browser with WebGL 2 is needed to play.</canvas>
 <div id="rotate">Turn your phone sideways to play.</div>
 <div id="loading" role="status"><div><h1 id="game-title">ACTION LAB</h1><p id="status">Preparing the world...</p><progress id="progress" max="1" value="0"></progress><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div></div>
+<script>
+const originalFetch=window.fetch.bind(window);
+window.fetch=(input,options)=>{
+  const target=typeof input==='string'?input:input.url;
+  if(typeof DecompressionStream==='function'&&/index\.wasm(?:\?.*)?$/.test(target)){
+    const compressed=target.replace(/\.wasm(\?.*)?$/,'.wasm.gz$1');
+    return originalFetch(compressed,options).then(response=>{
+      if(!response.ok||!response.body)return originalFetch(input,options);
+      return new Response(response.body.pipeThrough(new DecompressionStream('gzip')),{headers:{'Content-Type':'application/wasm'}});
+    });
+  }
+  return originalFetch(input,options);
+};
+</script>
 <script src="$GODOT_URL"></script>
 <script>
 const canvas=document.getElementById('canvas');
